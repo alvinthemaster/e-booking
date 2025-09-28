@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "774845116609",
+    "firebase_url": "https://e-ticket-2e8d0-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "e-ticket-2e8d0",
+    "storage_bucket": "e-ticket-2e8d0.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:774845116609:android:1136a5b7b1bcfdf0bc6440",
+        "android_client_info": {
+          "package_name": "com.uvexpress.eticket.uvexpress_eticket"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA9L9u7hTM5ivm1mi8YnkQiJzvuquUECs0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -225,34 +225,16 @@ class FirebaseBookingService {
         return;
       }
 
-      // Create sample routes
+      // Create Glan-GenSan route only
       final sampleRoutes = [
         Route(
-          id: 'route_1',
-          name: 'Calamba to Laguna',
-          origin: 'Calamba',
-          destination: 'Santa Rosa, Laguna',
-          basePrice: 25.0,
-          estimatedDuration: 30,
-          waypoints: ['Calamba', 'Cabuyao', 'Santa Rosa'],
-        ),
-        Route(
-          id: 'route_2',
-          name: 'Manila to Quezon City',
-          origin: 'Manila',
-          destination: 'Quezon City',
-          basePrice: 35.0,
-          estimatedDuration: 45,
-          waypoints: ['Manila', 'Mandaluyong', 'San Juan', 'Quezon City'],
-        ),
-        Route(
-          id: 'route_3',
-          name: 'Makati to BGC',
-          origin: 'Makati',
-          destination: 'BGC Taguig',
-          basePrice: 30.0,
-          estimatedDuration: 25,
-          waypoints: ['Makati', 'Pasay', 'BGC Taguig'],
+          id: 'route_glan_gensan',
+          name: 'Glan → General Santos',
+          origin: 'Glan',
+          destination: 'General Santos',
+          basePrice: 180.0,
+          estimatedDuration: 120,
+          waypoints: ['Glan', 'Polomolok', 'General Santos'],
         ),
       ];
 
@@ -271,8 +253,8 @@ class FirebaseBookingService {
             routeId: route.id,
             departureTime: departureTime,
             arrivalTime: departureTime.add(Duration(minutes: route.estimatedDuration)),
-            availableSeats: 20,
-            totalSeats: 20,
+            availableSeats: 12, // Van capacity for Glan-GenSan
+            totalSeats: 12,
             bookedSeats: [],
           );
           await _schedulesCollection.doc(schedule.id).set(schedule.toMap());

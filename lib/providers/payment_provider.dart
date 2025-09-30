@@ -14,7 +14,6 @@ class PaymentProvider with ChangeNotifier {
 
   List<String> get availablePaymentMethods => [
     'GCash',
-    'Physical Payment',
     'Maya',
     'PayPal',
   ];
@@ -48,10 +47,6 @@ class PaymentProvider with ChangeNotifier {
           _errorMessage = 'GCash payment failed. Please try again.';
           return false;
         }
-      } else if (method == 'Physical Payment') {
-        // Physical payment is always pending until confirmed
-        _currentStatus = PaymentStatus.pending;
-        return true;
       } else {
         // Other digital payment methods
         final success = await _processDigitalPayment(method, amount);
@@ -98,9 +93,7 @@ class PaymentProvider with ChangeNotifier {
   String getPaymentStatusMessage() {
     switch (_currentStatus) {
       case PaymentStatus.pending:
-        return _selectedMethod == 'Physical Payment' 
-            ? 'Please pay at the terminal before boarding'
-            : 'Payment processing...';
+        return 'Payment processing...';
       case PaymentStatus.paid:
         return 'Payment successful! E-ticket generated.';
       case PaymentStatus.failed:

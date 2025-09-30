@@ -287,19 +287,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                   ),
                       ),
                     ),
-
-                    if (paymentProvider.selectedMethod == 'Physical Payment')
-                      Padding(
-                        padding: const EdgeInsets.only(top: 12),
-                        child: Text(
-                          'You can pay at the terminal before boarding',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[600],
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
                   ],
                 ),
               ),
@@ -418,8 +405,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
     switch (method) {
       case 'GCash':
         return Icons.account_balance_wallet;
-      case 'Physical Payment':
-        return Icons.payments;
       case 'Maya':
         return Icons.credit_card;
       case 'PayPal':

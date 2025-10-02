@@ -10,12 +10,14 @@ class BookingProvider with ChangeNotifier {
   List<Booking> _bookings = [];
   List<Booking> _filteredBookings = [];
   List<Route> _routes = [];
+  List<Van> _vans = [];
   bool _isLoading = false;
   String _searchQuery = '';
   String? _errorMessage;
 
   List<Booking> get bookings => _filteredBookings;
   List<Route> get routes => _routes;
+  List<Van> get vans => _vans;
   bool get isLoading => _isLoading;
   String get searchQuery => _searchQuery;
   String? get errorMessage => _errorMessage;
@@ -213,20 +215,13 @@ class BookingProvider with ChangeNotifier {
   /// Initialize sample data (for testing)
   Future<void> initializeSampleData() async {
     try {
-      _isLoading = true;
-      notifyListeners();
-
       await _bookingService.initializeSampleData();
-      await loadRoutes();
-
+      // Load routes without notifyListeners to avoid setState during build
+      _routes = await _bookingService.getAvailableRoutes();
       debugPrint('Sample data initialized successfully');
     } catch (e) {
       _errorMessage = e.toString();
       debugPrint('Error initializing sample data: $e');
-      notifyListeners();
-    } finally {
-      _isLoading = false;
-      notifyListeners();
     }
   }
 
@@ -234,5 +229,62 @@ class BookingProvider with ChangeNotifier {
   void clearError() {
     _errorMessage = null;
     notifyListeners();
+  }
+
+  /// Van Management Methods
+
+  /// Load active vans from Firebase
+  Future<void> loadVans() async {
+    try {
+      _vans = await _bookingService.getActiveVans();
+      
+      // Debug print to see loaded vans
+      debugPrint('Loaded ${_vans.length} vans:');
+      for (var van in _vans) {
+        debugPrint('Van ${van.plateNumber}: ${van.driver.name} - ${van.statusDisplay} (${van.currentOccupancy}/${van.capacity})');
+      }
+      
+      notifyListeners();
+    } catch (e) {
+      _errorMessage = e.toString();
+      debugPrint('Error loading vans: $e');
+      notifyListeners();
+    }
+  }
+
+  /// Initialize sample van data
+  Future<void> initializeSampleVans() async {
+    try {
+      await _bookingService.initializeSampleVans();
+      await loadVans();
+      debugPrint('Sample van data initialized successfully');
+    } catch (e) {
+      _errorMessage = e.toString();
+      debugPrint('Error initializing sample vans: $e');
+    }
+  }
+
+  /// Update van occupancy
+  Future<void> updateVanOccupancy(String vanId, int occupancy) async {
+    try {
+      await _bookingService.updateVanOccupancy(vanId, occupancy);
+      await loadVans(); // Refresh van data
+    } catch (e) {
+      _errorMessage = e.toString();
+      debugPrint('Error updating van occupancy: $e');
+      notifyListeners();
+    }
+  }
+
+  /// Update van status
+  Future<void> updateVanStatus(String vanId, String status) async {
+    try {
+      await _bookingService.updateVanStatus(vanId, status);
+      await loadVans(); // Refresh van data
+    } catch (e) {
+      _errorMessage = e.toString();
+      debugPrint('Error updating van status: $e');
+      notifyListeners();
+    }
   }
 }

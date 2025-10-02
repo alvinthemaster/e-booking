@@ -11,6 +11,7 @@ class FirebaseBookingService {
   CollectionReference get _routesCollection => _firestore.collection('routes');
   CollectionReference get _schedulesCollection => _firestore.collection('schedules');
   CollectionReference get _usersCollection => _firestore.collection('users');
+  CollectionReference get _vansCollection => _firestore.collection('vans');
 
   /// Create a new booking
   Future<String> createBooking(Booking booking) async {
@@ -264,6 +265,126 @@ class FirebaseBookingService {
       print('Sample data initialized successfully');
     } catch (e) {
       throw Exception('Failed to initialize sample data: $e');
+    }
+  }
+
+  /// Van Management Methods
+
+  /// Get all active vans ordered by queue position
+  Future<List<Van>> getActiveVans() async {
+    try {
+      final querySnapshot = await _vansCollection
+          .where('isActive', isEqualTo: true)
+          .orderBy('queuePosition')
+          .get();
+
+      return querySnapshot.docs
+          .map((doc) => Van.fromDocument(doc))
+          .toList();
+    } catch (e) {
+      print('❌ Error getting active vans: $e');
+      throw Exception('Failed to get active vans: $e');
+    }
+  }
+
+  /// Get vans by status
+  Future<List<Van>> getVansByStatus(String status) async {
+    try {
+      final querySnapshot = await _vansCollection
+          .where('status', isEqualTo: status)
+          .where('isActive', isEqualTo: true)
+          .orderBy('queuePosition')
+          .get();
+
+      return querySnapshot.docs
+          .map((doc) => Van.fromDocument(doc))
+          .toList();
+    } catch (e) {
+      print('❌ Error getting vans by status: $e');
+      throw Exception('Failed to get vans by status: $e');
+    }
+  }
+
+  /// Update van occupancy
+  Future<void> updateVanOccupancy(String vanId, int occupancy) async {
+    try {
+      await _vansCollection.doc(vanId).update({
+        'currentOccupancy': occupancy,
+      });
+    } catch (e) {
+      throw Exception('Failed to update van occupancy: $e');
+    }
+  }
+
+  /// Update van status
+  Future<void> updateVanStatus(String vanId, String status) async {
+    try {
+      await _vansCollection.doc(vanId).update({
+        'status': status,
+      });
+    } catch (e) {
+      throw Exception('Failed to update van status: $e');
+    }
+  }
+
+  /// Add sample van data for testing
+  Future<void> initializeSampleVans() async {
+    try {
+      // Check if vans already exist
+      final vansSnapshot = await _vansCollection.limit(1).get();
+      if (vansSnapshot.docs.isNotEmpty) {
+        print('🚐 Sample vans already exist');
+        return;
+      }
+
+      print('🚐 Creating sample van data...');
+
+      final sampleVans = [
+        Van(
+          id: 'van_001',
+          plateNumber: 'ABC-123',
+          capacity: 18,
+          driver: Driver(
+            id: 'driver_001',
+            name: 'Juan Dela Cruz',
+            license: 'N01-12-123456',
+            contact: '+639123456789',
+          ),
+          status: 'boarding',
+          currentRouteId: 'route_glan_gensan',
+          queuePosition: 1,
+          currentOccupancy: 15,
+          isActive: true,
+          createdAt: DateTime.now(),
+        ),
+        Van(
+          id: 'van_002',
+          plateNumber: 'DEF-456',
+          capacity: 18,
+          driver: Driver(
+            id: 'driver_002',
+            name: 'Maria Santos',
+            license: 'N01-12-789012',
+            contact: '+639987654321',
+          ),
+          status: 'in_queue',
+          currentRouteId: 'route_glan_gensan',
+          queuePosition: 2,
+          currentOccupancy: 8,
+          isActive: true,
+          createdAt: DateTime.now(),
+        ),
+      ];
+
+      for (final van in sampleVans) {
+        await _vansCollection.doc(van.id).set(van.toMap());
+        print('🚐 Created van: ${van.plateNumber}');
+      }
+
+      print('✅ Sample van data initialized successfully');
+    } catch (e) {
+      print('❌ Failed to initialize sample vans: $e');
+      throw Exception('Failed to initialize sample vans: $e');
     }
   }
 }

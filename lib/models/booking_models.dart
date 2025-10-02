@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 
 class Seat {
   final String id;
@@ -270,5 +271,146 @@ class Schedule {
   factory Schedule.fromDocument(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
     return Schedule.fromMap({...data, 'id': doc.id});
+  }
+}
+
+class Driver {
+  final String id;
+  final String name;
+  final String license;
+  final String contact;
+
+  Driver({
+    required this.id,
+    required this.name,
+    required this.license,
+    required this.contact,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'name': name,
+      'license': license,
+      'contact': contact,
+    };
+  }
+
+  factory Driver.fromMap(Map<String, dynamic> map) {
+    return Driver(
+      id: map['id'] ?? '',
+      name: map['name'] ?? '',
+      license: map['license'] ?? '',
+      contact: map['contact'] ?? '',
+    );
+  }
+}
+
+class Van {
+  final String id;
+  final String plateNumber;
+  final int capacity;
+  final Driver driver;
+  final String status; // 'boarding', 'in_queue', 'maintenance', 'inactive'
+  final String? currentRouteId;
+  final int queuePosition;
+  final int currentOccupancy;
+  final bool isActive;
+  final DateTime? lastMaintenance;
+  final DateTime? nextMaintenance;
+  final DateTime createdAt;
+
+  Van({
+    required this.id,
+    required this.plateNumber,
+    required this.capacity,
+    required this.driver,
+    required this.status,
+    this.currentRouteId,
+    required this.queuePosition,
+    this.currentOccupancy = 0,
+    this.isActive = true,
+    this.lastMaintenance,
+    this.nextMaintenance,
+    required this.createdAt,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'plateNumber': plateNumber,
+      'capacity': capacity,
+      'driver': driver.toMap(),
+      'status': status,
+      'currentRouteId': currentRouteId,
+      'queuePosition': queuePosition,
+      'currentOccupancy': currentOccupancy,
+      'isActive': isActive,
+      'lastMaintenance': lastMaintenance != null ? Timestamp.fromDate(lastMaintenance!) : null,
+      'nextMaintenance': nextMaintenance != null ? Timestamp.fromDate(nextMaintenance!) : null,
+      'createdAt': Timestamp.fromDate(createdAt),
+    };
+  }
+
+  factory Van.fromMap(Map<String, dynamic> map) {
+    return Van(
+      id: map['id'] ?? '',
+      plateNumber: map['plateNumber'] ?? '',
+      capacity: map['capacity'] ?? 18,
+      driver: Driver.fromMap(map['driver'] ?? {}),
+      status: map['status'] ?? 'inactive',
+      currentRouteId: map['currentRouteId'],
+      queuePosition: map['queuePosition'] ?? 0,
+      currentOccupancy: map['currentOccupancy'] ?? 0,
+      isActive: map['isActive'] ?? true,
+      lastMaintenance: map['lastMaintenance'] != null 
+          ? (map['lastMaintenance'] as Timestamp).toDate() 
+          : null,
+      nextMaintenance: map['nextMaintenance'] != null 
+          ? (map['nextMaintenance'] as Timestamp).toDate() 
+          : null,
+      createdAt: map['createdAt'] != null 
+          ? (map['createdAt'] as Timestamp).toDate() 
+          : DateTime.now(),
+    );
+  }
+
+  factory Van.fromDocument(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    return Van.fromMap({...data, 'id': doc.id});
+  }
+
+  String get statusDisplay {
+    switch (status) {
+      case 'boarding':
+        return 'Currently Boarding';
+      case 'in_queue':
+        return 'In Queue';
+      case 'maintenance':
+        return 'Under Maintenance';
+      case 'inactive':
+        return 'Inactive';
+      default:
+        return 'Unknown';
+    }
+  }
+
+  Color get statusColor {
+    switch (status) {
+      case 'boarding':
+        return const Color(0xFF4CAF50); // Green
+      case 'in_queue':
+        return const Color(0xFFFF9800); // Orange
+      case 'maintenance':
+        return const Color(0xFFF44336); // Red
+      case 'inactive':
+        return const Color(0xFF9E9E9E); // Grey
+      default:
+        return const Color(0xFF9E9E9E);
+    }
+  }
+
+  bool get canBook {
+    return isActive && (status == 'boarding' || status == 'in_queue') && currentOccupancy < capacity;
   }
 }

@@ -78,7 +78,10 @@ class _HomeTabState extends State<HomeTab> {
   @override
   void initState() {
     super.initState();
-    _initializeFirebaseData();
+    // Use post frame callback to avoid setState during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeFirebaseData();
+    });
   }
 
   Future<void> _initializeFirebaseData() async {
@@ -90,12 +93,17 @@ class _HomeTabState extends State<HomeTab> {
       // Initialize sample data (routes and schedules)
       await bookingProvider.initializeSampleData();
       
-      // Load routes
-      await bookingProvider.loadRoutes();
+      // Initialize sample van data
+      await bookingProvider.initializeSampleVans();
       
       setState(() {
         _isInitialized = true;
       });
+      
+      // Load data after setState to trigger UI updates
+      await bookingProvider.loadRoutes();
+      await bookingProvider.loadVans();
+      
     } catch (e) {
       debugPrint('Error initializing Firebase data: $e');
     }
@@ -359,81 +367,97 @@ class _HomeTabState extends State<HomeTab> {
                         const SizedBox(height: 32),
 
                         // Van Queue System
-                        Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.grey[200]!),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.grey.withOpacity(0.1),
-                                spreadRadius: 1,
-                                blurRadius: 5,
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.directions_bus,
-                                    color: const Color(0xFF2196F3),
-                                    size: 24,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  const Text(
-                                    'Van Queue Status',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                        Consumer<BookingProvider>(
+                          builder: (context, bookingProvider, child) {
+                            return Container(
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: Colors.grey[200]!),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.grey.withOpacity(0.1),
+                                    spreadRadius: 1,
+                                    blurRadius: 5,
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 20),
-                              
-                              // Van 1 - Currently Boarding
-                              _buildVanQueueCard(
-                                vanNumber: '1',
-                                plateNumber: 'ABC-123',
-                                status: 'Currently Boarding',
-                                statusColor: const Color(0xFF4CAF50),
-                                occupancy: 15,
-                                maxSeats: 18,
-                                isActive: true,
-                                onBook: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => const SeatSelectionScreen(),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.directions_bus,
+                                        color: const Color(0xFF2196F3),
+                                        size: 24,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      const Text(
+                                        'Van Queue Status',
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 20),
+                                  
+                                  if (bookingProvider.isLoading)
+                                    const Center(
+                                      child: Padding(
+                                        padding: EdgeInsets.all(20),
+                                        child: CircularProgressIndicator(),
+                                      ),
+                                    )
+                                  else if (bookingProvider.vans.isEmpty)
+                                    Container(
+                                      padding: const EdgeInsets.all(20),
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey[50],
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(color: Colors.grey[200]!),
+                                      ),
+                                      child: Column(
+                                        children: [
+                                          Icon(Icons.info, color: Colors.grey[400]),
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            'No vans available in queue',
+                                            style: TextStyle(color: Colors.grey[600]),
+                                          ),
+                                        ],
+                                      ),
+                                    )
+                                  else
+                                    Column(
+                                      children: bookingProvider.vans.map((van) {
+                                        return _buildVanQueueCard(
+                                          vanNumber: van.queuePosition.toString(),
+                                          plateNumber: van.plateNumber,
+                                          driverName: van.driver.name,
+                                          status: van.statusDisplay,
+                                          statusColor: van.statusColor,
+                                          occupancy: van.currentOccupancy,
+                                          maxSeats: van.capacity,
+                                          isActive: van.canBook,
+                                          onBook: () {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) => const SeatSelectionScreen(),
+                                              ),
+                                            );
+                                          },
+                                        );
+                                      }).toList(),
                                     ),
-                                  );
-                                },
+                                ],
                               ),
-                              
-                              // Van 2 - In Queue
-                              _buildVanQueueCard(
-                                vanNumber: '2',
-                                plateNumber: 'DEF-456',
-                                status: 'In Queue',
-                                statusColor: const Color(0xFFFF9800),
-                                occupancy: 8,
-                                maxSeats: 18,
-                                isActive: false,
-                                onBook: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => const SeatSelectionScreen(),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ],
-                          ),
+                            );
+                          },
                         ),
 
                         const SizedBox(height: 20),
@@ -485,6 +509,7 @@ class _HomeTabState extends State<HomeTab> {
   Widget _buildVanQueueCard({
     required String vanNumber,
     required String plateNumber,
+    required String driverName,
     required String status,
     required Color statusColor,
     required int occupancy,
@@ -552,12 +577,61 @@ class _HomeTabState extends State<HomeTab> {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    Text(
-                      plateNumber,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey[600],
-                      ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.confirmation_number,
+                          size: 14,
+                          color: Colors.grey[600],
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          plateNumber,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.person,
+                          size: 14,
+                          color: Colors.grey[600],
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          driverName,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.event_seat,
+                          size: 14,
+                          color: Colors.grey[600],
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${maxSeats - occupancy} seats available',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: isActive ? const Color(0xFF4CAF50) : Colors.grey[600],
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),

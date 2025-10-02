@@ -381,36 +381,32 @@ class Van {
   }
 
   String get statusDisplay {
-    switch (status) {
-      case 'boarding':
-        return 'Currently Boarding';
-      case 'in_queue':
-        return 'In Queue';
-      case 'maintenance':
-        return 'Under Maintenance';
+    switch (status.toLowerCase().trim()) {
+      case 'active':
+        return 'Ready';
       case 'inactive':
         return 'Inactive';
+      case 'maintenance':
+        return 'Maintenance';
       default:
         return 'Unknown';
     }
   }
 
   Color get statusColor {
-    switch (status) {
-      case 'boarding':
+    switch (status.toLowerCase().trim()) {
+      case 'active':
         return const Color(0xFF4CAF50); // Green
-      case 'in_queue':
-        return const Color(0xFFFF9800); // Orange
-      case 'maintenance':
-        return const Color(0xFFF44336); // Red
       case 'inactive':
         return const Color(0xFF9E9E9E); // Grey
+      case 'maintenance':
+        return const Color(0xFFF44336); // Red
       default:
-        return const Color(0xFF9E9E9E);
+        return const Color(0xFF9E9E9E); // Default grey
     }
   }
 
   bool get canBook {
-    return isActive && (status == 'boarding' || status == 'in_queue') && currentOccupancy < capacity;
+    return isActive && status.toLowerCase().trim() == 'active' && currentOccupancy < capacity;
   }
 }

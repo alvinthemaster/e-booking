@@ -90,22 +90,35 @@ class _HomeTabState extends State<HomeTab> {
     try {
       final bookingProvider = Provider.of<BookingProvider>(context, listen: false);
       
-      // Initialize sample data (routes and schedules)
-      await bookingProvider.initializeSampleData();
+      debugPrint('🚀 Starting Firebase data initialization...');
       
-      // Initialize sample van data
-      await bookingProvider.initializeSampleVans();
+      // Initialize sample data (routes and schedules) only if needed - but don't notify during build
+      await bookingProvider.initializeSampleDataSilent();
       
-      setState(() {
-        _isInitialized = true;
-      });
+      // Check for existing vans first - DON'T create sample vans if real ones exist
+      debugPrint('🔍 Checking for existing vans in Firestore...');
+      await bookingProvider.initializeSampleVansSilent();
       
-      // Load data after setState to trigger UI updates
-      await bookingProvider.loadRoutes();
+      // Force load fresh data from Firestore after initialization
+      debugPrint('🔄 Force loading fresh van data from Firestore...');
       await bookingProvider.loadVans();
       
+      // Only set initialized state after everything is complete
+      if (mounted) {
+        setState(() {
+          _isInitialized = true;
+        });
+      }
+      
+      debugPrint('✅ Firebase data initialization completed');
+      
     } catch (e) {
-      debugPrint('Error initializing Firebase data: $e');
+      debugPrint('❌ Error initializing Firebase data: $e');
+      if (mounted) {
+        setState(() {
+          _isInitialized = true; // Set to true even on error to prevent retry loops
+        });
+      }
     }
   }
 
@@ -162,17 +175,35 @@ class _HomeTabState extends State<HomeTab> {
                           ),
                         ],
                       ),
-                      // Profile Button
-                      IconButton(
-                        onPressed: () {
-                          Navigator.pushNamed(context, '/profile');
-                        },
-                        icon: const Icon(
-                          Icons.person,
-                          color: Colors.white,
-                          size: 28,
-                        ),
-                        tooltip: 'Profile',
+                      Row(
+                        children: [
+                          // Debug refresh button to manually sync with Firestore
+                          IconButton(
+                            onPressed: () async {
+                              final provider = Provider.of<BookingProvider>(context, listen: false);
+                              debugPrint('🔄 Manual refresh triggered');
+                              await provider.loadVans();
+                            },
+                            icon: const Icon(
+                              Icons.refresh,
+                              color: Colors.white,
+                              size: 24,
+                            ),
+                            tooltip: 'Refresh Vans',
+                          ),
+                          // Profile Button
+                          IconButton(
+                            onPressed: () {
+                              Navigator.pushNamed(context, '/profile');
+                            },
+                            icon: const Icon(
+                              Icons.person,
+                              color: Colors.white,
+                              size: 28,
+                            ),
+                            tooltip: 'Profile',
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -404,6 +435,34 @@ class _HomeTabState extends State<HomeTab> {
                                     ],
                                   ),
                                   const SizedBox(height: 20),
+                                  
+                                  // Debug info section (remove in production)
+                                  Consumer<BookingProvider>(
+                                    builder: (context, provider, child) {
+                                      return Container(
+                                        padding: const EdgeInsets.all(12),
+                                        decoration: BoxDecoration(
+                                          color: Colors.blue[50],
+                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(color: Colors.blue[200]!),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Icon(Icons.info, color: Colors.blue[600], size: 16),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              'Debug: ${provider.vans.length} van(s) loaded from Firestore',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.blue[700],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                  const SizedBox(height: 16),
                                   
                                   if (bookingProvider.isLoading)
                                     const Center(

@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import '../models/booking_models.dart';
 
 class FirebaseBookingService {
@@ -233,7 +234,7 @@ class FirebaseBookingService {
           name: 'Glan → General Santos',
           origin: 'Glan',
           destination: 'General Santos',
-          basePrice: 180.0,
+          basePrice: 150.0,
           estimatedDuration: 120,
           waypoints: ['Glan', 'Polomolok', 'General Santos'],
         ),
@@ -273,16 +274,37 @@ class FirebaseBookingService {
   /// Get all active vans ordered by queue position
   Future<List<Van>> getActiveVans() async {
     try {
+      debugPrint('🔍 Querying vans collection from Firestore...');
+      
+      // Temporary: Use simple query without ordering to avoid index requirement
       final querySnapshot = await _vansCollection
           .where('isActive', isEqualTo: true)
-          .orderBy('queuePosition')
           .get();
 
-      return querySnapshot.docs
-          .map((doc) => Van.fromDocument(doc))
-          .toList();
+      debugPrint('📄 Found ${querySnapshot.docs.length} van documents in Firestore');
+      
+      final vans = <Van>[];
+      for (var doc in querySnapshot.docs) {
+        try {
+          debugPrint('📋 Processing van document: ${doc.id}');
+          final docData = doc.data() as Map<String, dynamic>;
+          debugPrint('📄 Raw status from Firestore: ${docData['status']}');
+          final van = Van.fromDocument(doc);
+          debugPrint('✅ Successfully parsed van: ${van.plateNumber} - Status: ${van.status} - Display: ${van.statusDisplay}');
+          vans.add(van);
+        } catch (e) {
+          debugPrint('❌ Error parsing van document ${doc.id}: $e');
+          debugPrint('📄 Document data: ${doc.data()}');
+        }
+      }
+      
+      // Sort in memory instead of in query (temporary workaround)
+      vans.sort((a, b) => a.queuePosition.compareTo(b.queuePosition));
+      
+      debugPrint('🎯 Returning ${vans.length} parsed vans');
+      return vans;
     } catch (e) {
-      print('❌ Error getting active vans: $e');
+      debugPrint('❌ Error getting active vans: $e');
       throw Exception('Failed to get active vans: $e');
     }
   }
@@ -290,15 +312,20 @@ class FirebaseBookingService {
   /// Get vans by status
   Future<List<Van>> getVansByStatus(String status) async {
     try {
+      // Temporary: Use simple query without ordering to avoid index requirement
       final querySnapshot = await _vansCollection
           .where('status', isEqualTo: status)
           .where('isActive', isEqualTo: true)
-          .orderBy('queuePosition')
           .get();
 
-      return querySnapshot.docs
+      final vans = querySnapshot.docs
           .map((doc) => Van.fromDocument(doc))
           .toList();
+      
+      // Sort in memory instead of in query (temporary workaround)
+      vans.sort((a, b) => a.queuePosition.compareTo(b.queuePosition));
+      
+      return vans;
     } catch (e) {
       print('❌ Error getting vans by status: $e');
       throw Exception('Failed to get vans by status: $e');
@@ -313,17 +340,6 @@ class FirebaseBookingService {
       });
     } catch (e) {
       throw Exception('Failed to update van occupancy: $e');
-    }
-  }
-
-  /// Update van status
-  Future<void> updateVanStatus(String vanId, String status) async {
-    try {
-      await _vansCollection.doc(vanId).update({
-        'status': status,
-      });
-    } catch (e) {
-      throw Exception('Failed to update van status: $e');
     }
   }
 
@@ -383,8 +399,69 @@ class FirebaseBookingService {
 
       print('✅ Sample van data initialized successfully');
     } catch (e) {
-      print('❌ Failed to initialize sample vans: $e');
-      throw Exception('Failed to initialize sample vans: $e');
+      print('❌ Error initializing sample van data: $e');
+      throw Exception('Failed to initialize sample van data: $e');
+    }
+  }
+
+  /// Create a new van
+  Future<String> createVan(Van van) async {
+    try {
+      final docRef = _vansCollection.doc();
+      final vanWithId = Van(
+        id: docRef.id,
+        plateNumber: van.plateNumber,
+        capacity: van.capacity,
+        driver: van.driver,
+        status: van.status,
+        currentRouteId: van.currentRouteId,
+        queuePosition: van.queuePosition,
+        currentOccupancy: van.currentOccupancy,
+        isActive: van.isActive,
+        lastMaintenance: van.lastMaintenance,
+        nextMaintenance: van.nextMaintenance,
+        createdAt: van.createdAt,
+      );
+
+      await docRef.set(vanWithId.toMap());
+      debugPrint('✅ Created van: ${van.plateNumber} with ID: ${docRef.id}');
+      return docRef.id;
+    } catch (e) {
+      debugPrint('❌ Error creating van: $e');
+      throw Exception('Failed to create van: $e');
+    }
+  }
+
+  /// Update van status
+  Future<void> updateVanStatus(String vanId, String status) async {
+    try {
+      await _vansCollection.doc(vanId).update({'status': status});
+      debugPrint('✅ Updated van $vanId status to: $status');
+    } catch (e) {
+      debugPrint('❌ Error updating van status: $e');
+      throw Exception('Failed to update van status: $e');
+    }
+  }
+
+  /// Update van queue position
+  Future<void> updateVanQueuePosition(String vanId, int position) async {
+    try {
+      await _vansCollection.doc(vanId).update({'queuePosition': position});
+      debugPrint('✅ Updated van $vanId queue position to: $position');
+    } catch (e) {
+      debugPrint('❌ Error updating van queue position: $e');
+      throw Exception('Failed to update van queue position: $e');
+    }
+  }
+
+  /// Delete van
+  Future<void> deleteVan(String vanId) async {
+    try {
+      await _vansCollection.doc(vanId).delete();
+      debugPrint('✅ Deleted van: $vanId');
+    } catch (e) {
+      debugPrint('❌ Error deleting van: $e');
+      throw Exception('Failed to delete van: $e');
     }
   }
 }

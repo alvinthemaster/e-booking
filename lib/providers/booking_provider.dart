@@ -219,6 +219,21 @@ class BookingProvider with ChangeNotifier {
       // Load routes without notifyListeners to avoid setState during build
       _routes = await _bookingService.getAvailableRoutes();
       debugPrint('Sample data initialized successfully');
+      notifyListeners();
+    } catch (e) {
+      _errorMessage = e.toString();
+      debugPrint('Error initializing sample data: $e');
+      notifyListeners();
+    }
+  }
+
+  /// Initialize sample data silently (without notifyListeners)
+  Future<void> initializeSampleDataSilent() async {
+    try {
+      await _bookingService.initializeSampleData();
+      // Load routes without notifyListeners to avoid setState during build
+      _routes = await _bookingService.getAvailableRoutes();
+      debugPrint('Sample data initialized successfully');
     } catch (e) {
       _errorMessage = e.toString();
       debugPrint('Error initializing sample data: $e');
@@ -236,18 +251,30 @@ class BookingProvider with ChangeNotifier {
   /// Load active vans from Firebase
   Future<void> loadVans() async {
     try {
-      _vans = await _bookingService.getActiveVans();
+      debugPrint('🔍 Loading vans from Firestore...');
+      _isLoading = true;
+      notifyListeners();
+      
+      // Clear existing vans first to avoid showing stale data
+      _vans.clear();
+      
+      final loadedVans = await _bookingService.getActiveVans();
+      debugPrint('📄 Loaded ${loadedVans.length} vans from Firestore');
       
       // Debug print to see loaded vans
-      debugPrint('Loaded ${_vans.length} vans:');
-      for (var van in _vans) {
-        debugPrint('Van ${van.plateNumber}: ${van.driver.name} - ${van.statusDisplay} (${van.currentOccupancy}/${van.capacity})');
+      for (var van in loadedVans) {
+        debugPrint('🚐 Van: ${van.plateNumber} - Driver: ${van.driver.name} - Raw Status: "${van.status}" - Display: "${van.statusDisplay}" - Queue: ${van.queuePosition} (${van.currentOccupancy}/${van.capacity})');
       }
+      
+      _vans = loadedVans;
+      _isLoading = false;
+      debugPrint('✅ Successfully loaded ${_vans.length} vans from Firestore');
       
       notifyListeners();
     } catch (e) {
       _errorMessage = e.toString();
-      debugPrint('Error loading vans: $e');
+      debugPrint('❌ Error loading vans: $e');
+      _isLoading = false;
       notifyListeners();
     }
   }
@@ -255,12 +282,72 @@ class BookingProvider with ChangeNotifier {
   /// Initialize sample van data
   Future<void> initializeSampleVans() async {
     try {
+      debugPrint('🔍 Checking if vans already exist in Firestore...');
+      
+      // First check if any vans exist in Firestore
+      final existingVans = await _bookingService.getActiveVans();
+      
+      if (existingVans.isNotEmpty) {
+        debugPrint('✅ Found ${existingVans.length} existing vans in Firestore, skipping sample data creation');
+        return; // Don't create sample data if real vans exist
+      }
+      
+      debugPrint('📝 No vans found, checking if sample data should be created...');
+      
+      // Only create sample data if explicitly needed for development
+      // In production, this should be disabled
+      const bool shouldCreateSampleVans = false; // Set to false to prevent sample data
+      
+      if (!shouldCreateSampleVans) {
+        debugPrint('⏭️ Sample van creation disabled');
+        return;
+      }
+      
+      // Sample van creation code here (only runs if enabled)
+      debugPrint('📝 Creating sample van data...');
       await _bookingService.initializeSampleVans();
       await loadVans();
-      debugPrint('Sample van data initialized successfully');
+      debugPrint('✅ Sample vans initialized successfully');
+      
     } catch (e) {
       _errorMessage = e.toString();
-      debugPrint('Error initializing sample vans: $e');
+      debugPrint('❌ Error initializing sample vans: $e');
+    }
+  }
+
+  /// Initialize sample van data silently (without notifyListeners)
+  Future<void> initializeSampleVansSilent() async {
+    try {
+      debugPrint('🔍 Checking if vans already exist in Firestore...');
+      
+      // First check if any vans exist in Firestore
+      final existingVans = await _bookingService.getActiveVans();
+      
+      if (existingVans.isNotEmpty) {
+        debugPrint('✅ Found ${existingVans.length} existing vans in Firestore, skipping sample data creation');
+        return; // Don't create sample data if real vans exist
+      }
+      
+      debugPrint('📝 No vans found, checking if sample data should be created...');
+      
+      // Only create sample data if explicitly needed for development
+      // In production, this should be disabled
+      const bool shouldCreateSampleVans = false; // Set to false to prevent sample data
+      
+      if (!shouldCreateSampleVans) {
+        debugPrint('⏭️ Sample van creation disabled');
+        return;
+      }
+      
+      // Sample van creation code here (only runs if enabled)
+      debugPrint('📝 Creating sample van data...');
+      await _bookingService.initializeSampleVans();
+      // Don't call loadVans() here to avoid notifyListeners
+      debugPrint('✅ Sample vans initialized successfully');
+      
+    } catch (e) {
+      _errorMessage = e.toString();
+      debugPrint('❌ Error initializing sample vans: $e');
     }
   }
 

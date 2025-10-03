@@ -18,7 +18,7 @@ class UserBookingListener extends StatefulWidget {
 class _UserBookingListenerState extends State<UserBookingListener> {
   final FirebaseBookingService _bookingService = FirebaseBookingService();
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  Set<String> _processedCancellations = <String>{};
+  final Set<String> _processedCancellations = <String>{};
 
   @override
   Widget build(BuildContext context) {

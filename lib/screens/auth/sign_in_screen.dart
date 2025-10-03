@@ -47,7 +47,9 @@ class _SignInScreenState extends State<SignInScreen>
 
     _fadeController.forward();
     Future.delayed(const Duration(milliseconds: 300), () {
-      _slideController.forward();
+      if (mounted) {
+        _slideController.forward();
+      }
     });
   }
 
@@ -76,6 +78,8 @@ class _SignInScreenState extends State<SignInScreen>
       );
 
       if (success && mounted) {
+        // Always navigate to home - user is authenticated
+        // Email verification is now optional and doesn't block app usage
         Navigator.of(context).pushReplacementNamed('/home');
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -130,27 +134,20 @@ class _SignInScreenState extends State<SignInScreen>
                             children: [
                               // Logo and Title
                               Container(
-                                width: 80,
-                                height: 80,
-                                decoration: const BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      Color(0xFF1976D2),
-                                      Color(0xFF42A5F5),
-                                    ],
+                                width: 200,
+                                height: 200,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(12),
+                                  image: const DecorationImage(
+                                    image: AssetImage('assets/images/godtrasco_logo.png'), // Fixed path
+                                    fit: BoxFit.contain,
                                   ),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.directions_bus_rounded,
-                                  size: 40,
-                                  color: Colors.white,
                                 ),
                               ),
                               const SizedBox(height: 24),
 
                               Text(
-                                'UVexpress',
+                                'GODTRASCO',
                                 style: GoogleFonts.poppins(
                                   fontSize: 28,
                                   fontWeight: FontWeight.bold,

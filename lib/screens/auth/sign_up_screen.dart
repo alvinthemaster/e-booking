@@ -98,6 +98,7 @@ class _SignUpScreenState extends State<SignUpScreen>
       );
 
       if (success && mounted) {
+        // Navigate to home - user can use app immediately
         Navigator.of(context).pushReplacementNamed('/home');
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -164,21 +165,14 @@ class _SignUpScreenState extends State<SignUpScreen>
 
                               // Logo and Title
                               Container(
-                                width: 80,
-                                height: 80,
-                                decoration: const BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      Color(0xFF1976D2),
-                                      Color(0xFF42A5F5),
-                                    ],
+                                width: 200,
+                                height: 200,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(12),
+                                  image: const DecorationImage(
+                                    image: AssetImage('assets/images/godtrasco_logo.png'),
+                                    fit: BoxFit.contain,
                                   ),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.person_add_rounded,
-                                  size: 40,
-                                  color: Colors.white,
                                 ),
                               ),
                               const SizedBox(height: 24),
@@ -194,7 +188,7 @@ class _SignUpScreenState extends State<SignUpScreen>
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                'Join UVexpress and start your journey',
+                                'Join GODTRASCO and start your journey',
                                 style: GoogleFonts.poppins(
                                   fontSize: 14,
                                   color: Colors.grey[600],

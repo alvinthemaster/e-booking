@@ -80,6 +80,9 @@ class Booking {
   final DateTime? cancelledAt;
   final String? cancellationReason;
   final String? cancelledBy;
+  final DateTime? completedAt;
+  final String? completionReason;
+  final bool? adminCompletion;
 
   Booking({
     required this.id,
@@ -109,6 +112,9 @@ class Booking {
     this.cancelledAt,
     this.cancellationReason,
     this.cancelledBy,
+    this.completedAt,
+    this.completionReason,
+    this.adminCompletion,
   });
 
   // Convert Booking to Map for Firestore
@@ -141,6 +147,9 @@ class Booking {
       'cancelledAt': cancelledAt != null ? Timestamp.fromDate(cancelledAt!) : null,
       'cancellationReason': cancellationReason,
       'cancelledBy': cancelledBy,
+      'completedAt': completedAt != null ? Timestamp.fromDate(completedAt!) : null,
+      'completionReason': completionReason,
+      'adminCompletion': adminCompletion,
     };
   }
 
@@ -182,6 +191,11 @@ class Booking {
           : null,
       cancellationReason: map['cancellationReason'],
       cancelledBy: map['cancelledBy'],
+      completedAt: map['completedAt'] != null 
+          ? (map['completedAt'] as Timestamp).toDate() 
+          : null,
+      completionReason: map['completionReason'],
+      adminCompletion: map['adminCompletion'],
     );
   }
 

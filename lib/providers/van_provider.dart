@@ -129,6 +129,42 @@ class VanProvider with ChangeNotifier {
     }
   }
 
+  /// Complete van trip - marks all bookings as completed and resets occupancy
+  Future<void> completeVanTrip(String vanId) async {
+    try {
+      _isLoading = true;
+      notifyListeners();
+
+      // Complete all bookings for this van
+      await _bookingService.completeAllBookingsForVan(vanId);
+      
+      // Reset van occupancy to 0
+      await _bookingService.updateVanOccupancy(vanId, 0);
+      
+      // Reload vans to reflect changes
+      await loadVans();
+      
+      debugPrint('VanProvider: Trip completed for van $vanId');
+    } catch (e) {
+      _errorMessage = e.toString();
+      debugPrint('VanProvider: Error completing van trip: $e');
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Check if van trip can be completed
+  Future<bool> canCompleteTrip(String vanId) async {
+    try {
+      return await _bookingService.canCompleteTrip(vanId);
+    } catch (e) {
+      debugPrint('VanProvider: Error checking if trip can be completed: $e');
+      return false;
+    }
+  }
+
   /// Clear error message
   void clearError() {
     _errorMessage = null;

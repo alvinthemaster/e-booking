@@ -138,17 +138,16 @@ class _HomeTabState extends State<HomeTab> {
                       Row(
                         children: [
                           Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Icon(
-                              Icons.directions_bus,
-                              color: Colors.white,
-                              size: 32,
-                            ),
-                          ),
+                                width: 60,
+                                height: 60,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(12),
+                                  image: const DecorationImage(
+                                    image: AssetImage('assets/images/godtrasco_logo.png'),
+                                    fit: BoxFit.contain,
+                                  ),
+                                ),
+                              ),
                           const SizedBox(width: 16),
                           const Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -445,39 +444,39 @@ class _HomeTabState extends State<HomeTab> {
                                   const SizedBox(height: 20),
 
                                   // Debug info section (remove in production)
-                                  Consumer<BookingProvider>(
-                                    builder: (context, provider, child) {
-                                      return Container(
-                                        padding: const EdgeInsets.all(12),
-                                        decoration: BoxDecoration(
-                                          color: Colors.blue[50],
-                                          borderRadius: BorderRadius.circular(
-                                            8,
-                                          ),
-                                          border: Border.all(
-                                            color: Colors.blue[200]!,
-                                          ),
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            Icon(
-                                              Icons.info,
-                                              color: Colors.blue[600],
-                                              size: 16,
-                                            ),
-                                            const SizedBox(width: 8),
-                                            Text(
-                                              'Debug: ${provider.vans.length} van(s) loaded from Firestore',
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                color: Colors.blue[700],
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      );
-                                    },
-                                  ),
+   //                               Consumer<BookingProvider>(
+     //                               builder: (context, provider, child) {
+       //                               return Container(
+         //                               padding: const EdgeInsets.all(12),
+           //                             decoration: BoxDecoration(
+             //                             color: Colors.blue[50],
+               //                           borderRadius: BorderRadius.circular(
+                 //                           8,
+                   //                       ),
+                     //                     border: Border.all(
+                       //                     color: Colors.blue[200]!,
+                         //                 ),
+                           //             ),
+                             //           child: Row(
+                               //           children: [
+                                 //           Icon(
+                                   //           Icons.info,
+                                     //         color: Colors.blue[600],
+                                       //       size: 16,
+                                         //   ),
+                                           // const SizedBox(width: 8),
+                  //                          Text(
+                    //                          'Debug: ${provider.vans.length} van(s) loaded from Firestore',
+                      //                        style: TextStyle(
+                        //                        fontSize: 12,
+                          //                      color: Colors.blue[700],
+                            //                  ),
+                              //              ),
+                                //          ],
+                                  //      ),
+                                    //  );
+                               //     },
+                                //  ),
                                   const SizedBox(height: 16),
 
                                   if (bookingProvider.isLoading)

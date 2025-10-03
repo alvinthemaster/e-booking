@@ -193,7 +193,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                     _buildInfoChip(
                       'Reserved',
                       seatProvider.seats.where((s) => s.isReserved).length,
-                      Colors.grey,
+                      Colors.red,
                     ),
                   ],
                 ),
@@ -229,8 +229,8 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                     ),
                     _buildLegendItem(
                       'Reserved',
-                      Colors.grey[400]!,
-                      Colors.grey[600]!,
+                      Colors.red[300]!,
+                      Colors.red[800]!,
                     ),
                     _buildLegendItem(
                       'Discount',
@@ -562,10 +562,10 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
     Widget? overlayIcon;
 
     if (seat.isReserved) {
-      seatColor = Colors.grey[300]!;
-      textColor = Colors.grey[600]!;
-      borderColor = Colors.grey[500]!;
-      overlayIcon = Icon(Icons.lock, color: Colors.grey[600], size: 16);
+      seatColor = Colors.red[300]!;
+      textColor = Colors.white;
+      borderColor = Colors.red[500]!;
+      overlayIcon = const Icon(Icons.lock, color: Colors.white, size: 16);
     } else if (seat.isSelected) {
       if (seat.hasDiscount) {
         seatColor = const Color(0xFF4CAF50);

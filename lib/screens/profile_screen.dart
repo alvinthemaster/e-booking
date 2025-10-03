@@ -179,7 +179,7 @@ class ProfileScreen extends StatelessWidget {
 
                 // App Version
                 Text(
-                  'UVexpress E-Ticket v1.0.0',
+                  'GODTRASCO E-Ticket v1.0.0',
                   style: GoogleFonts.poppins(
                     fontSize: 12,
                     color: Colors.grey[500],
@@ -425,7 +425,7 @@ class ProfileScreen extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
           ),
           title: Text(
-            'About UVexpress E-Ticket',
+            'About GODTRASCO E-Ticket',
             style: GoogleFonts.poppins(
               fontSize: 18,
               fontWeight: FontWeight.w600,
@@ -438,7 +438,7 @@ class ProfileScreen extends StatelessWidget {
               Text('Version: 1.0.0', style: GoogleFonts.poppins(fontSize: 14)),
               const SizedBox(height: 8),
               Text(
-                'UVexpress E-Ticket Reservation System for van seat booking with e-ticket generation and payment processing.',
+                'GODTRASCO E-Ticket Reservation System for van seat booking with e-ticket generation and payment processing.',
                 style: GoogleFonts.poppins(
                   fontSize: 14,
                   color: Colors.grey[600],
@@ -446,7 +446,7 @@ class ProfileScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                '© 2025 UVexpress. All rights reserved.',
+                '© 2025 GODTRASCO. All rights reserved.',
                 style: GoogleFonts.poppins(
                   fontSize: 12,
                   color: Colors.grey[500],

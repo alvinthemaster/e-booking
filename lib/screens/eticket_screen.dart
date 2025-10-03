@@ -136,15 +136,14 @@ class ETicketScreen extends StatelessWidget {
                                 Row(
                                   children: [
                                     Container(
-                                      padding: const EdgeInsets.all(8),
+                                      width: 60,
+                                      height: 60,
                                       decoration: BoxDecoration(
-                                        color: Colors.white.withOpacity(0.2),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: const Icon(
-                                        Icons.directions_bus,
-                                        color: Colors.white,
-                                        size: 24,
+                                        borderRadius: BorderRadius.circular(12),
+                                        image: const DecorationImage(
+                                          image: AssetImage('assets/images/godtrasco_logo.png'),
+                                          fit: BoxFit.contain,
+                                        ),
                                       ),
                                     ),
                                     const SizedBox(width: 12),
@@ -153,7 +152,7 @@ class ETicketScreen extends StatelessWidget {
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          'UVexpress',
+                                          'GODTRASCO',
                                           style: TextStyle(
                                             color: Colors.white,
                                             fontSize: 20,

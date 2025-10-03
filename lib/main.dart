@@ -23,11 +23,11 @@ void main() async {
     'Firebase apps initialized: ${Firebase.apps.map((app) => app.name).toList()}',
   );
 
-  runApp(const UVExpressApp());
+  runApp(const GodtrascoApp());
 }
 
-class UVExpressApp extends StatelessWidget {
-  const UVExpressApp({super.key});
+class GodtrascoApp extends StatelessWidget {
+  const GodtrascoApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +41,7 @@ class UVExpressApp extends StatelessWidget {
       child: Consumer<app_auth.AuthProvider>(
         builder: (context, authProvider, _) {
           return MaterialApp(
-            title: 'UVexpress E-Ticket',
+            title: 'GODTRASCO E-Ticket',
             debugShowCheckedModeBanner: false,
             theme: ThemeData(
               primarySwatch: Colors.blue,

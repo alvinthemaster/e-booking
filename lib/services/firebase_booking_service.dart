@@ -361,7 +361,7 @@ class FirebaseBookingService {
         await vanDoc.reference.update({'currentOccupancy': clampedOccupancy});
 
         debugPrint(
-          '✅ Updated van ${plateNumber} occupancy: ${van.currentOccupancy} → ${clampedOccupancy}',
+          '✅ Updated van $plateNumber occupancy: ${van.currentOccupancy} → $clampedOccupancy',
         );
       } else {
         debugPrint(
@@ -443,7 +443,7 @@ class FirebaseBookingService {
 
   /// Generate QR Code data
   String _generateQRCode(String bookingId) {
-    return 'UVexpress-$bookingId-${DateTime.now().millisecondsSinceEpoch}';
+    return 'GODTRASCO-$bookingId-${DateTime.now().millisecondsSinceEpoch}';
   }
 
   /// Initialize sample data (for testing)
@@ -701,6 +701,82 @@ class FirebaseBookingService {
     } catch (e) {
       debugPrint('❌ Error deleting van: $e');
       throw Exception('Failed to delete van: $e');
+    }
+  }
+
+  /// Get van by ID
+  Future<Van?> getVanById(String vanId) async {
+    try {
+      final doc = await _vansCollection.doc(vanId).get();
+      if (doc.exists) {
+        return Van.fromDocument(doc);
+      }
+      return null;
+    } catch (e) {
+      debugPrint('❌ Error getting van by ID: $e');
+      throw Exception('Failed to get van: $e');
+    }
+  }
+
+  /// Mark all active bookings for a specific van as completed
+  Future<void> completeAllBookingsForVan(String vanId) async {
+    try {
+      // Get van details to find associated route
+      Van? van = await getVanById(vanId);
+      if (van == null) return;
+
+      debugPrint('📋 Searching for active bookings to mark as completed for van ${van.plateNumber} on route ${van.currentRouteId}');
+
+      if (van.currentRouteId == null || van.currentRouteId!.isEmpty) {
+        debugPrint('📋 Van ${van.plateNumber} has no route assigned - no bookings to complete');
+        return;
+      }
+
+      // Query bookings that might be associated with this van
+      // Use the correct enum values for booking status
+      QuerySnapshot bookingsSnapshot = await _bookingsCollection
+          .where('routeId', isEqualTo: van.currentRouteId)
+          .where('bookingStatus', whereIn: [BookingStatus.pending.name, BookingStatus.confirmed.name])
+          .get();
+
+      WriteBatch batch = _firestore.batch();
+      int completedCount = 0;
+
+      for (QueryDocumentSnapshot bookingDoc in bookingsSnapshot.docs) {
+        // Mark booking as completed instead of cancelled
+        batch.update(bookingDoc.reference, {
+          'bookingStatus': BookingStatus.completed.name,
+          'completionReason': 'Trip completed by administrator',
+          'completedAt': FieldValue.serverTimestamp(),
+          'adminCompletion': true,
+        });
+        
+        completedCount++;
+      }
+
+      if (completedCount > 0) {
+        await batch.commit();
+        debugPrint('📋 Marked $completedCount bookings as completed for van ${van.plateNumber} - trip history preserved');
+      } else {
+        debugPrint('📋 No active bookings found to complete for van ${van.plateNumber}');
+      }
+    } catch (e) {
+      debugPrint('❌ Error completing bookings for van: $e');
+      rethrow;
+    }
+  }
+
+  /// Validate if trip completion is possible
+  Future<bool> canCompleteTrip(String vanId) async {
+    try {
+      Van? van = await getVanById(vanId);
+      if (van == null) return false;
+      
+      // Can only complete trip if van has passengers
+      return van.currentOccupancy > 0;
+    } catch (e) {
+      debugPrint('Error checking if trip can be completed: $e');
+      return false;
     }
   }
 }

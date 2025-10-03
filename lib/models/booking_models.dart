@@ -4,11 +4,12 @@ import 'package:flutter/material.dart';
 class Seat {
   final String id;
   final int row;
-  final String position; // 'left-window', 'left-aisle', 'right-aisle', 'right-window'
+  final String
+  position; // 'left-window', 'left-aisle', 'right-aisle', 'right-window'
   bool isReserved;
   bool isSelected;
   bool hasDiscount;
-  
+
   Seat({
     required this.id,
     required this.row,
@@ -41,17 +42,14 @@ class Seat {
   }
 }
 
-enum PaymentStatus {
-  pending,
-  paid,
-  failed,
-  refunded,
-}
+enum PaymentStatus { pending, paid, failed, refunded }
 
-enum BookingStatus {
-  active,
-  completed,
+enum BookingStatus { 
+  pending,
+  confirmed, 
+  completed, 
   cancelled,
+  cancelledByAdmin // NEW - for admin cancellations
 }
 
 class Booking {
@@ -76,6 +74,12 @@ class Booking {
   final String? qrCodeData;
   final String? eTicketId;
   final Map<String, dynamic>? passengerDetails;
+  final String? vanPlateNumber;
+  final String? vanDriverName;
+  final String? vanDriverContact;
+  final DateTime? cancelledAt;
+  final String? cancellationReason;
+  final String? cancelledBy;
 
   Booking({
     required this.id,
@@ -99,6 +103,12 @@ class Booking {
     this.qrCodeData,
     this.eTicketId,
     this.passengerDetails,
+    this.vanPlateNumber,
+    this.vanDriverName,
+    this.vanDriverContact,
+    this.cancelledAt,
+    this.cancellationReason,
+    this.cancelledBy,
   });
 
   // Convert Booking to Map for Firestore
@@ -125,6 +135,12 @@ class Booking {
       'qrCodeData': qrCodeData,
       'eTicketId': eTicketId,
       'passengerDetails': passengerDetails,
+      'vanPlateNumber': vanPlateNumber,
+      'vanDriverName': vanDriverName,
+      'vanDriverContact': vanDriverContact,
+      'cancelledAt': cancelledAt != null ? Timestamp.fromDate(cancelledAt!) : null,
+      'cancellationReason': cancellationReason,
+      'cancelledBy': cancelledBy,
     };
   }
 
@@ -153,11 +169,19 @@ class Booking {
       ),
       bookingStatus: BookingStatus.values.firstWhere(
         (e) => e.name == map['bookingStatus'],
-        orElse: () => BookingStatus.active,
+        orElse: () => BookingStatus.pending,
       ),
       qrCodeData: map['qrCodeData'],
       eTicketId: map['eTicketId'],
       passengerDetails: map['passengerDetails'],
+      vanPlateNumber: map['vanPlateNumber'],
+      vanDriverName: map['vanDriverName'],
+      vanDriverContact: map['vanDriverContact'],
+      cancelledAt: map['cancelledAt'] != null 
+          ? (map['cancelledAt'] as Timestamp).toDate() 
+          : null,
+      cancellationReason: map['cancellationReason'],
+      cancelledBy: map['cancelledBy'],
     );
   }
 
@@ -288,12 +312,7 @@ class Driver {
   });
 
   Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'name': name,
-      'license': license,
-      'contact': contact,
-    };
+    return {'id': id, 'name': name, 'license': license, 'contact': contact};
   }
 
   factory Driver.fromMap(Map<String, dynamic> map) {
@@ -346,8 +365,12 @@ class Van {
       'queuePosition': queuePosition,
       'currentOccupancy': currentOccupancy,
       'isActive': isActive,
-      'lastMaintenance': lastMaintenance != null ? Timestamp.fromDate(lastMaintenance!) : null,
-      'nextMaintenance': nextMaintenance != null ? Timestamp.fromDate(nextMaintenance!) : null,
+      'lastMaintenance': lastMaintenance != null
+          ? Timestamp.fromDate(lastMaintenance!)
+          : null,
+      'nextMaintenance': nextMaintenance != null
+          ? Timestamp.fromDate(nextMaintenance!)
+          : null,
       'createdAt': Timestamp.fromDate(createdAt),
     };
   }
@@ -363,14 +386,14 @@ class Van {
       queuePosition: map['queuePosition'] ?? 0,
       currentOccupancy: map['currentOccupancy'] ?? 0,
       isActive: map['isActive'] ?? true,
-      lastMaintenance: map['lastMaintenance'] != null 
-          ? (map['lastMaintenance'] as Timestamp).toDate() 
+      lastMaintenance: map['lastMaintenance'] != null
+          ? (map['lastMaintenance'] as Timestamp).toDate()
           : null,
-      nextMaintenance: map['nextMaintenance'] != null 
-          ? (map['nextMaintenance'] as Timestamp).toDate() 
+      nextMaintenance: map['nextMaintenance'] != null
+          ? (map['nextMaintenance'] as Timestamp).toDate()
           : null,
-      createdAt: map['createdAt'] != null 
-          ? (map['createdAt'] as Timestamp).toDate() 
+      createdAt: map['createdAt'] != null
+          ? (map['createdAt'] as Timestamp).toDate()
           : DateTime.now(),
     );
   }
@@ -382,12 +405,16 @@ class Van {
 
   String get statusDisplay {
     switch (status.toLowerCase().trim()) {
-      case 'active':
-        return 'Ready';
-      case 'inactive':
-        return 'Inactive';
+      case 'boarding':
+        return 'Boarding';
+      case 'in_queue':
+        return 'In Queue';
       case 'maintenance':
         return 'Maintenance';
+      case 'inactive':
+        return 'Inactive';
+      case 'active':
+        return 'Ready';
       default:
         return 'Unknown';
     }
@@ -395,18 +422,25 @@ class Van {
 
   Color get statusColor {
     switch (status.toLowerCase().trim()) {
-      case 'active':
-        return const Color(0xFF4CAF50); // Green
-      case 'inactive':
-        return const Color(0xFF9E9E9E); // Grey
+      case 'boarding':
+        return const Color(0xFF4CAF50); // Green - actively boarding passengers
+      case 'in_queue':
+        return const Color(0xFFFF9800); // Orange
       case 'maintenance':
         return const Color(0xFFF44336); // Red
+      case 'inactive':
+        return const Color(0xFF9E9E9E); // Grey
+      case 'active':
+        return const Color(0xFF2196F3); // Blue
       default:
         return const Color(0xFF9E9E9E); // Default grey
     }
   }
 
   bool get canBook {
-    return isActive && status.toLowerCase().trim() == 'active' && currentOccupancy < capacity;
+    final allowedStatuses = ['active', 'boarding', 'in_queue'];
+    return isActive &&
+        allowedStatuses.contains(status.toLowerCase().trim()) &&
+        currentOccupancy < capacity;
   }
 }

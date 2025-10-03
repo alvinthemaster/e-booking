@@ -8,9 +8,11 @@ class FirebaseBookingService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   // Collection references
-  CollectionReference get _bookingsCollection => _firestore.collection('bookings');
+  CollectionReference get _bookingsCollection =>
+      _firestore.collection('bookings');
   CollectionReference get _routesCollection => _firestore.collection('routes');
-  CollectionReference get _schedulesCollection => _firestore.collection('schedules');
+  CollectionReference get _schedulesCollection =>
+      _firestore.collection('schedules');
   CollectionReference get _usersCollection => _firestore.collection('users');
   CollectionReference get _vansCollection => _firestore.collection('vans');
 
@@ -24,7 +26,7 @@ class FirebaseBookingService {
       final docRef = _bookingsCollection.doc();
       final bookingId = docRef.id;
 
-      // Create booking with generated ID
+      // Create booking with generated ID and preserve the provided payment status
       final bookingWithId = Booking(
         id: bookingId,
         userId: booking.userId,
@@ -42,21 +44,74 @@ class FirebaseBookingService {
         discountAmount: booking.discountAmount,
         totalAmount: booking.totalAmount,
         paymentMethod: booking.paymentMethod,
-        paymentStatus: PaymentStatus.pending,
-        bookingStatus: BookingStatus.active,
+        paymentStatus: booking.paymentStatus, // Use the provided payment status
+        bookingStatus: BookingStatus.pending, // New bookings start as pending
         qrCodeData: _generateQRCode(bookingId),
         eTicketId: 'ET-${bookingId.substring(0, 8).toUpperCase()}',
         passengerDetails: booking.passengerDetails,
+        vanPlateNumber: booking.vanPlateNumber,
+        vanDriverName: booking.vanDriverName,
+        vanDriverContact: booking.vanDriverContact,
       );
 
       await docRef.set(bookingWithId.toMap());
 
+      // Update van occupancy
+      if (booking.vanPlateNumber != null && booking.vanDriverName != null) {
+        await _updateVanOccupancy(
+          booking.vanPlateNumber!,
+          booking.vanDriverName!,
+          booking.numberOfSeats,
+          true, // isBooking
+        );
+      }
+
       // Update seat availability in schedule
-      await _updateSeatAvailability(booking.routeId, booking.seatIds, isBooking: true);
+      await _updateSeatAvailability(
+        booking.routeId,
+        booking.seatIds,
+        isBooking: true,
+      );
 
       return bookingId;
     } catch (e) {
       throw Exception('Failed to create booking: $e');
+    }
+  }
+
+  /// Get active bookings stream for a van (only pending and confirmed bookings)
+  Stream<List<Booking>> getActiveBookingsForVan(String vanId, String routeId) {
+    return _bookingsCollection
+        .where('routeId', isEqualTo: routeId)
+        .where('bookingStatus', whereIn: ['pending', 'confirmed']) // Only active bookings
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => Booking.fromDocument(doc))
+            .toList());
+  }
+
+  /// Get user's bookings stream (for real-time cancellation detection)
+  Stream<List<Booking>> getUserBookingsStream(String userId) {
+    return _bookingsCollection
+        .where('userId', isEqualTo: userId)
+        .orderBy('bookingDate', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => Booking.fromDocument(doc))
+            .toList());
+  }
+
+  /// Cancel booking by admin (sets status to cancelledByAdmin)
+  Future<void> cancelBookingByAdmin(String bookingId, {String? reason}) async {
+    try {
+      await _bookingsCollection.doc(bookingId).update({
+        'bookingStatus': BookingStatus.cancelledByAdmin.name,
+        'cancelledAt': FieldValue.serverTimestamp(),
+        'cancellationReason': reason ?? 'Cancelled by administrator',
+        'cancelledBy': 'admin',
+      });
+    } catch (e) {
+      throw Exception('Failed to cancel booking by admin: $e');
     }
   }
 
@@ -76,6 +131,14 @@ class FirebaseBookingService {
     }
   }
 
+  /// Check if seat is available (helper method for seat selection logic)
+  bool isSeatAvailable(int seatNumber, List<Booking> activeBookings) {
+    return !activeBookings.any((booking) => 
+        booking.seatIds.contains(seatNumber.toString()) && 
+        ['pending', 'confirmed'].contains(booking.bookingStatus.name) // Only active bookings
+    );
+  }
+
   /// Get booking by ID
   Future<Booking?> getBookingById(String bookingId) async {
     try {
@@ -88,7 +151,10 @@ class FirebaseBookingService {
   }
 
   /// Update booking status
-  Future<void> updateBookingStatus(String bookingId, BookingStatus status) async {
+  Future<void> updateBookingStatus(
+    String bookingId,
+    BookingStatus status,
+  ) async {
     try {
       await _bookingsCollection.doc(bookingId).update({
         'bookingStatus': status.name,
@@ -99,7 +165,10 @@ class FirebaseBookingService {
   }
 
   /// Update payment status
-  Future<void> updatePaymentStatus(String bookingId, PaymentStatus status) async {
+  Future<void> updatePaymentStatus(
+    String bookingId,
+    PaymentStatus status,
+  ) async {
     try {
       await _bookingsCollection.doc(bookingId).update({
         'paymentStatus': status.name,
@@ -118,8 +187,22 @@ class FirebaseBookingService {
       // Update booking status to cancelled
       await updateBookingStatus(bookingId, BookingStatus.cancelled);
 
+      // Update van occupancy
+      if (booking.vanPlateNumber != null && booking.vanDriverName != null) {
+        await _updateVanOccupancy(
+          booking.vanPlateNumber!,
+          booking.vanDriverName!,
+          booking.numberOfSeats,
+          false, // isBooking = false (cancellation)
+        );
+      }
+
       // Free up the seats
-      await _updateSeatAvailability(booking.routeId, booking.seatIds, isBooking: false);
+      await _updateSeatAvailability(
+        booking.routeId,
+        booking.seatIds,
+        isBooking: false,
+      );
     } catch (e) {
       throw Exception('Failed to cancel booking: $e');
     }
@@ -132,9 +215,7 @@ class FirebaseBookingService {
           .where('isActive', isEqualTo: true)
           .get();
 
-      return querySnapshot.docs
-          .map((doc) => Route.fromDocument(doc))
-          .toList();
+      return querySnapshot.docs.map((doc) => Route.fromDocument(doc)).toList();
     } catch (e) {
       throw Exception('Failed to get routes: $e');
     }
@@ -158,13 +239,20 @@ class FirebaseBookingService {
     }
   }
 
-  /// Check seat availability
-  Future<bool> areSeatsAvailable(String routeId, List<String> seatIds) async {
+  /// Check seat availability for a specific van
+  Future<bool> areSeatsAvailable(
+    String routeId,
+    List<String> seatIds,
+    String vanPlateNumber,
+    String vanDriverName,
+  ) async {
     try {
-      // Get current bookings for this route that are active
+      // Get current bookings for this specific van that are active (pending or confirmed)
       final bookingsQuery = await _bookingsCollection
           .where('routeId', isEqualTo: routeId)
-          .where('bookingStatus', isEqualTo: BookingStatus.active.name)
+          .where('vanPlateNumber', isEqualTo: vanPlateNumber)
+          .where('vanDriverName', isEqualTo: vanDriverName)
+          .where('bookingStatus', whereIn: ['pending', 'confirmed']) // Only active bookings block seats
           .get();
 
       final bookedSeatIds = <String>[];
@@ -173,15 +261,156 @@ class FirebaseBookingService {
         bookedSeatIds.addAll(booking.seatIds);
       }
 
-      // Check if any of the requested seats are already booked
+      // Check if any of the requested seats are already booked on this specific van
       return !seatIds.any((seatId) => bookedSeatIds.contains(seatId));
     } catch (e) {
       throw Exception('Failed to check seat availability: $e');
     }
   }
 
+  /// Get available vans for booking (only boarding vans) - integrates with admin van management
+  Future<List<Van>> getAvailableVansForBooking(String routeId) async {
+    try {
+      // Get only vans with 'boarding' status - actively accepting passengers
+      final vansQuery = await _vansCollection
+          .where('currentRouteId', isEqualTo: routeId)
+          .where('isActive', isEqualTo: true)
+          .where('status', isEqualTo: 'boarding') // Only boarding status
+          .get();
+
+      final availableVans = <Van>[];
+      for (final doc in vansQuery.docs) {
+        final van = Van.fromDocument(doc);
+        // Double-check capacity (admin system should handle this, but safety check)
+        if (van.currentOccupancy < van.capacity) {
+          availableVans.add(van);
+        }
+      }
+
+      // Sort by queue position for proper van selection
+      availableVans.sort((a, b) => a.queuePosition.compareTo(b.queuePosition));
+      
+      debugPrint('Available boarding vans: ${availableVans.length}');
+      return availableVans;
+    } catch (e) {
+      debugPrint('Error getting available vans for booking: $e');
+      return [];
+    }
+  }
+
+  /// Get the active van for a specific route (integrates with admin van management)
+  Future<Van?> getActiveVanForRoute(String routeId) async {
+    try {
+      debugPrint('Looking for bookable van with routeId: $routeId');
+      
+      // Get only bookable vans (excludes full ones) using admin van management
+      final availableVans = await getAvailableVansForBooking(routeId);
+      
+      if (availableVans.isNotEmpty) {
+        final selectedVan = availableVans.first;
+        debugPrint('Found bookable van: ${selectedVan.plateNumber} (Occupancy: ${selectedVan.currentOccupancy}/${selectedVan.capacity})');
+        return selectedVan;
+      }
+      
+      debugPrint('No bookable vans found for route $routeId');
+      
+      // Final debug: Get ALL vans to see what exists
+      final allVansQuery = await _vansCollection.get();
+      debugPrint('Total vans in database: ${allVansQuery.docs.length}');
+      
+      for (final doc in allVansQuery.docs) {
+        final van = Van.fromDocument(doc);
+        debugPrint('Van: ${van.plateNumber}, Route: ${van.currentRouteId}, Active: ${van.isActive}, Status: ${van.status}, Occupancy: ${van.currentOccupancy}/${van.capacity}');
+      }
+      
+      return null;
+    } catch (e) {
+      debugPrint('Error getting active van for route: $e');
+      return null;
+    }
+  }
+
+  /// Update van occupancy when booking is created or cancelled
+  Future<void> _updateVanOccupancy(
+    String plateNumber,
+    String driverName,
+    int seatCount,
+    bool isBooking,
+  ) async {
+    try {
+      // Find the van by plate number and driver name
+      final vanQuery = await _vansCollection
+          .where('plateNumber', isEqualTo: plateNumber)
+          .where('driver.name', isEqualTo: driverName)
+          .limit(1)
+          .get();
+
+      if (vanQuery.docs.isNotEmpty) {
+        final vanDoc = vanQuery.docs.first;
+        final van = Van.fromDocument(vanDoc);
+
+        // Calculate new occupancy
+        final newOccupancy = isBooking
+            ? van.currentOccupancy + seatCount
+            : van.currentOccupancy - seatCount;
+
+        // Ensure occupancy doesn't go below 0 or above capacity
+        final clampedOccupancy = newOccupancy.clamp(0, van.capacity);
+
+        // Update the van document
+        await vanDoc.reference.update({'currentOccupancy': clampedOccupancy});
+
+        debugPrint(
+          '✅ Updated van ${plateNumber} occupancy: ${van.currentOccupancy} → ${clampedOccupancy}',
+        );
+      } else {
+        debugPrint(
+          '⚠️ Van not found for occupancy update: $plateNumber ($driverName)',
+        );
+      }
+    } catch (e) {
+      debugPrint('❌ Error updating van occupancy: $e');
+    }
+  }
+
+  /// Get reserved seats for a specific van (identified by plate number and driver name)
+  Future<List<String>> getReservedSeats(
+    String routeId,
+    String vanPlateNumber,
+    String vanDriverName,
+  ) async {
+    try {
+      // Get current bookings for this specific van that are active (pending or confirmed) and paid
+      final bookingsQuery = await _bookingsCollection
+          .where('routeId', isEqualTo: routeId)
+          .where('vanPlateNumber', isEqualTo: vanPlateNumber)
+          .where('vanDriverName', isEqualTo: vanDriverName)
+          .where('bookingStatus', whereIn: ['pending', 'confirmed']) // Only active bookings
+          .where(
+            'paymentStatus',
+            whereIn: [PaymentStatus.paid.name, PaymentStatus.pending.name],
+          )
+          .get();
+
+      final reservedSeatIds = <String>[];
+      for (final doc in bookingsQuery.docs) {
+        final booking = Booking.fromDocument(doc);
+        reservedSeatIds.addAll(booking.seatIds);
+      }
+
+      return reservedSeatIds;
+    } catch (e) {
+      debugPrint('Error getting reserved seats: $e');
+      return []; // Return empty list on error to not break the UI
+    }
+  }
+
   /// Update seat availability in schedule
-  Future<void> _updateSeatAvailability(String routeId, List<String> seatIds, {required bool isBooking}) async {
+  Future<void> _updateSeatAvailability(
+    String routeId,
+    List<String> seatIds, {
+    required bool isBooking,
+  }) async {
     try {
       final schedulesQuery = await _schedulesCollection
           .where('routeId', isEqualTo: routeId)
@@ -254,7 +483,9 @@ class FirebaseBookingService {
             id: '${route.id}_schedule_$i',
             routeId: route.id,
             departureTime: departureTime,
-            arrivalTime: departureTime.add(Duration(minutes: route.estimatedDuration)),
+            arrivalTime: departureTime.add(
+              Duration(minutes: route.estimatedDuration),
+            ),
             availableSeats: 12, // Van capacity for Glan-GenSan
             totalSeats: 12,
             bookedSeats: [],
@@ -275,32 +506,42 @@ class FirebaseBookingService {
   Future<List<Van>> getActiveVans() async {
     try {
       debugPrint('🔍 Querying vans collection from Firestore...');
-      
+
       // Temporary: Use simple query without ordering to avoid index requirement
       final querySnapshot = await _vansCollection
           .where('isActive', isEqualTo: true)
           .get();
 
-      debugPrint('📄 Found ${querySnapshot.docs.length} van documents in Firestore');
-      
+      debugPrint(
+        '📄 Found ${querySnapshot.docs.length} van documents in Firestore',
+      );
+
       final vans = <Van>[];
       for (var doc in querySnapshot.docs) {
         try {
-          debugPrint('📋 Processing van document: ${doc.id}');
+          debugPrint('Processing van document: ${doc.id}');
           final docData = doc.data() as Map<String, dynamic>;
-          debugPrint('📄 Raw status from Firestore: ${docData['status']}');
+          debugPrint('Raw status from Firestore: ${docData['status']}');
           final van = Van.fromDocument(doc);
-          debugPrint('✅ Successfully parsed van: ${van.plateNumber} - Status: ${van.status} - Display: ${van.statusDisplay}');
-          vans.add(van);
+          
+          // Only include vans that are boarding (actively accepting passengers)
+          if (van.status == 'boarding') {
+            debugPrint(
+              'Successfully parsed boarding van: ${van.plateNumber} - Status: ${van.status} - Display: ${van.statusDisplay}',
+            );
+            vans.add(van);
+          } else {
+            debugPrint('Skipping non-boarding van: ${van.plateNumber} (Status: ${van.status})');
+          }
         } catch (e) {
-          debugPrint('❌ Error parsing van document ${doc.id}: $e');
-          debugPrint('📄 Document data: ${doc.data()}');
+          debugPrint('Error parsing van document ${doc.id}: $e');
+          debugPrint('Document data: ${doc.data()}');
         }
       }
-      
+
       // Sort in memory instead of in query (temporary workaround)
       vans.sort((a, b) => a.queuePosition.compareTo(b.queuePosition));
-      
+
       debugPrint('🎯 Returning ${vans.length} parsed vans');
       return vans;
     } catch (e) {
@@ -321,10 +562,10 @@ class FirebaseBookingService {
       final vans = querySnapshot.docs
           .map((doc) => Van.fromDocument(doc))
           .toList();
-      
+
       // Sort in memory instead of in query (temporary workaround)
       vans.sort((a, b) => a.queuePosition.compareTo(b.queuePosition));
-      
+
       return vans;
     } catch (e) {
       print('❌ Error getting vans by status: $e');
@@ -335,9 +576,7 @@ class FirebaseBookingService {
   /// Update van occupancy
   Future<void> updateVanOccupancy(String vanId, int occupancy) async {
     try {
-      await _vansCollection.doc(vanId).update({
-        'currentOccupancy': occupancy,
-      });
+      await _vansCollection.doc(vanId).update({'currentOccupancy': occupancy});
     } catch (e) {
       throw Exception('Failed to update van occupancy: $e');
     }

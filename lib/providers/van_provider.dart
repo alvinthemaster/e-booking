@@ -4,7 +4,7 @@ import '../models/booking_models.dart';
 
 class VanProvider with ChangeNotifier {
   final FirebaseBookingService _bookingService = FirebaseBookingService();
-  
+
   List<Van> _vans = [];
   bool _isLoading = false;
   String? _errorMessage;
@@ -55,7 +55,7 @@ class VanProvider with ChangeNotifier {
 
       await _bookingService.createVan(updatedVan);
       await loadVans(); // Reload vans to get updated data
-      
+
       debugPrint('VanProvider: Van ${van.plateNumber} added successfully');
     } catch (e) {
       _errorMessage = e.toString();
@@ -72,7 +72,7 @@ class VanProvider with ChangeNotifier {
     try {
       await _bookingService.updateVanStatus(vanId, status);
       await loadVans(); // Reload vans to get updated data
-      
+
       debugPrint('VanProvider: Van $vanId status updated to $status');
     } catch (e) {
       _errorMessage = e.toString();
@@ -86,7 +86,10 @@ class VanProvider with ChangeNotifier {
     try {
       final van = _vans.firstWhere((v) => v.id == vanId);
       if (van.queuePosition > 1) {
-        await _bookingService.updateVanQueuePosition(vanId, van.queuePosition - 1);
+        await _bookingService.updateVanQueuePosition(
+          vanId,
+          van.queuePosition - 1,
+        );
         await loadVans();
         debugPrint('VanProvider: Van $vanId moved up in queue');
       }
@@ -100,7 +103,9 @@ class VanProvider with ChangeNotifier {
   /// Move van to end of queue
   Future<void> moveVanToEnd(String vanId) async {
     try {
-      final maxPosition = _vans.isNotEmpty ? _vans.map((v) => v.queuePosition).reduce((a, b) => a > b ? a : b) : 1;
+      final maxPosition = _vans.isNotEmpty
+          ? _vans.map((v) => v.queuePosition).reduce((a, b) => a > b ? a : b)
+          : 1;
       await _bookingService.updateVanQueuePosition(vanId, maxPosition + 1);
       await loadVans();
       debugPrint('VanProvider: Van $vanId moved to end of queue');

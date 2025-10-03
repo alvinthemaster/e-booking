@@ -10,7 +10,7 @@ class SignUpScreen extends StatefulWidget {
   State<SignUpScreen> createState() => _SignUpScreenState();
 }
 
-class _SignUpScreenState extends State<SignUpScreen> 
+class _SignUpScreenState extends State<SignUpScreen>
     with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
@@ -21,7 +21,7 @@ class _SignUpScreenState extends State<SignUpScreen>
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
   bool _isLoading = false;
-  
+
   late AnimationController _fadeController;
   late AnimationController _slideController;
   late Animation<double> _fadeAnimation;
@@ -38,23 +38,16 @@ class _SignUpScreenState extends State<SignUpScreen>
       vsync: this,
       duration: const Duration(milliseconds: 800),
     );
-    
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _fadeController,
-      curve: Curves.easeInOut,
-    ));
-    
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.3),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _slideController,
-      curve: Curves.easeOutCubic,
-    ));
-    
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut),
+    );
+
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
+          CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic),
+        );
+
     _fadeController.forward();
     Future.delayed(const Duration(milliseconds: 300), () {
       _slideController.forward();
@@ -75,30 +68,35 @@ class _SignUpScreenState extends State<SignUpScreen>
 
   Future<void> _signUp() async {
     if (!_formKey.currentState!.validate()) return;
-    
+
     if (_passwordController.text != _confirmPasswordController.text) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Passwords do not match'),
           backgroundColor: Colors.red[600],
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
         ),
       );
       return;
     }
-    
+
     setState(() => _isLoading = true);
-    
+
     try {
-      final authProvider = Provider.of<app_auth.AuthProvider>(context, listen: false);
+      final authProvider = Provider.of<app_auth.AuthProvider>(
+        context,
+        listen: false,
+      );
       final success = await authProvider.signUp(
         _emailController.text.trim(),
         _passwordController.text,
         _nameController.text.trim(),
         _phoneController.text.trim(),
       );
-      
+
       if (success && mounted) {
         Navigator.of(context).pushReplacementNamed('/home');
       } else if (mounted) {
@@ -107,7 +105,9 @@ class _SignUpScreenState extends State<SignUpScreen>
             content: Text(authProvider.errorMessage ?? 'Sign up failed'),
             backgroundColor: Colors.red[600],
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
         );
       }
@@ -124,11 +124,7 @@ class _SignUpScreenState extends State<SignUpScreen>
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF1976D2),
-              Color(0xFF2196F3),
-              Color(0xFF42A5F5),
-            ],
+            colors: [Color(0xFF1976D2), Color(0xFF2196F3), Color(0xFF42A5F5)],
           ),
         ),
         child: SafeArea(
@@ -165,14 +161,17 @@ class _SignUpScreenState extends State<SignUpScreen>
                                   ),
                                 ),
                               ),
-                              
+
                               // Logo and Title
                               Container(
                                 width: 80,
                                 height: 80,
                                 decoration: const BoxDecoration(
                                   gradient: LinearGradient(
-                                    colors: [Color(0xFF1976D2), Color(0xFF42A5F5)],
+                                    colors: [
+                                      Color(0xFF1976D2),
+                                      Color(0xFF42A5F5),
+                                    ],
                                   ),
                                   shape: BoxShape.circle,
                                 ),
@@ -183,7 +182,7 @@ class _SignUpScreenState extends State<SignUpScreen>
                                 ),
                               ),
                               const SizedBox(height: 24),
-                              
+
                               // Welcome Text
                               Text(
                                 'Create Account',
@@ -202,7 +201,7 @@ class _SignUpScreenState extends State<SignUpScreen>
                                 ),
                               ),
                               const SizedBox(height: 32),
-                              
+
                               // Name Field
                               TextFormField(
                                 controller: _nameController,
@@ -223,7 +222,9 @@ class _SignUpScreenState extends State<SignUpScreen>
                                   ),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(color: Colors.grey[300]!),
+                                    borderSide: BorderSide(
+                                      color: Colors.grey[300]!,
+                                    ),
                                   ),
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
@@ -238,7 +239,7 @@ class _SignUpScreenState extends State<SignUpScreen>
                                 ),
                               ),
                               const SizedBox(height: 16),
-                              
+
                               // Email Field
                               TextFormField(
                                 controller: _emailController,
@@ -247,7 +248,9 @@ class _SignUpScreenState extends State<SignUpScreen>
                                   if (value?.isEmpty ?? true) {
                                     return 'Please enter your email';
                                   }
-                                  if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value!)) {
+                                  if (!RegExp(
+                                    r'^[^@]+@[^@]+\.[^@]+',
+                                  ).hasMatch(value!)) {
                                     return 'Please enter a valid email';
                                   }
                                   return null;
@@ -260,7 +263,9 @@ class _SignUpScreenState extends State<SignUpScreen>
                                   ),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(color: Colors.grey[300]!),
+                                    borderSide: BorderSide(
+                                      color: Colors.grey[300]!,
+                                    ),
                                   ),
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
@@ -275,7 +280,7 @@ class _SignUpScreenState extends State<SignUpScreen>
                                 ),
                               ),
                               const SizedBox(height: 16),
-                              
+
                               // Phone Field
                               TextFormField(
                                 controller: _phoneController,
@@ -297,7 +302,9 @@ class _SignUpScreenState extends State<SignUpScreen>
                                   ),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(color: Colors.grey[300]!),
+                                    borderSide: BorderSide(
+                                      color: Colors.grey[300]!,
+                                    ),
                                   ),
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
@@ -312,7 +319,7 @@ class _SignUpScreenState extends State<SignUpScreen>
                                 ),
                               ),
                               const SizedBox(height: 16),
-                              
+
                               // Password Field
                               TextFormField(
                                 controller: _passwordController,
@@ -334,20 +341,23 @@ class _SignUpScreenState extends State<SignUpScreen>
                                   ),
                                   suffixIcon: IconButton(
                                     icon: Icon(
-                                      _isPasswordVisible 
-                                          ? Icons.visibility_off 
+                                      _isPasswordVisible
+                                          ? Icons.visibility_off
                                           : Icons.visibility,
                                       color: Colors.grey[600],
                                     ),
                                     onPressed: () {
                                       setState(() {
-                                        _isPasswordVisible = !_isPasswordVisible;
+                                        _isPasswordVisible =
+                                            !_isPasswordVisible;
                                       });
                                     },
                                   ),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(color: Colors.grey[300]!),
+                                    borderSide: BorderSide(
+                                      color: Colors.grey[300]!,
+                                    ),
                                   ),
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
@@ -362,7 +372,7 @@ class _SignUpScreenState extends State<SignUpScreen>
                                 ),
                               ),
                               const SizedBox(height: 16),
-                              
+
                               // Confirm Password Field
                               TextFormField(
                                 controller: _confirmPasswordController,
@@ -381,20 +391,23 @@ class _SignUpScreenState extends State<SignUpScreen>
                                   ),
                                   suffixIcon: IconButton(
                                     icon: Icon(
-                                      _isConfirmPasswordVisible 
-                                          ? Icons.visibility_off 
+                                      _isConfirmPasswordVisible
+                                          ? Icons.visibility_off
                                           : Icons.visibility,
                                       color: Colors.grey[600],
                                     ),
                                     onPressed: () {
                                       setState(() {
-                                        _isConfirmPasswordVisible = !_isConfirmPasswordVisible;
+                                        _isConfirmPasswordVisible =
+                                            !_isConfirmPasswordVisible;
                                       });
                                     },
                                   ),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(color: Colors.grey[300]!),
+                                    borderSide: BorderSide(
+                                      color: Colors.grey[300]!,
+                                    ),
                                   ),
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
@@ -409,7 +422,7 @@ class _SignUpScreenState extends State<SignUpScreen>
                                 ),
                               ),
                               const SizedBox(height: 32),
-                              
+
                               // Sign Up Button
                               SizedBox(
                                 width: double.infinity,
@@ -443,7 +456,7 @@ class _SignUpScreenState extends State<SignUpScreen>
                                 ),
                               ),
                               const SizedBox(height: 24),
-                              
+
                               // Sign In Link
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.center,

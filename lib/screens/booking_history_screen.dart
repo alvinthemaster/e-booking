@@ -16,7 +16,6 @@ class BookingHistoryScreen extends StatefulWidget {
 
 class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
   final TextEditingController _searchController = TextEditingController();
-  String _selectedFilter = 'All'; // All, Paid, Pending
 
   @override
   void initState() {
@@ -44,19 +43,6 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
       ),
       body: Consumer<BookingProvider>(
         builder: (context, bookingProvider, child) {
-          // Filter bookings based on selected filter
-          List<Booking> displayBookings = bookingProvider.bookings;
-          if (_selectedFilter == 'Paid') {
-            displayBookings = bookingProvider.bookings
-                .where((booking) => booking.paymentStatus == PaymentStatus.paid)
-                .toList();
-          } else if (_selectedFilter == 'Pending') {
-            displayBookings = bookingProvider.bookings
-                .where((booking) => booking.paymentStatus == PaymentStatus.pending || 
-                                   booking.paymentStatus == PaymentStatus.failed)
-                .toList();
-          }
-
           return Column(
             children: [
               // Search Bar
@@ -69,37 +55,23 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
                       controller: _searchController,
                       decoration: InputDecoration(
                         hintText: 'Search bookings...',
-                        prefixIcon: const Icon(Icons.search, color: Color(0xFF2196F3)),
+                        prefixIcon: const Icon(
+                          Icons.search,
+                          color: Color(0xFF2196F3),
+                        ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide.none,
                         ),
                         filled: true,
                         fillColor: Colors.grey[100],
-                        contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 16,
+                        ),
                       ),
                       onChanged: (value) {
                         bookingProvider.searchBookings(value);
                       },
-                    ),
-                    
-                    const SizedBox(height: 16),
-                    
-                    // Filter Buttons
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildFilterChip('All', _selectedFilter == 'All'),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _buildFilterChip('Paid', _selectedFilter == 'Paid'),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _buildFilterChip('Pending', _selectedFilter == 'Pending'),
-                        ),
-                      ],
                     ),
                   ],
                 ),
@@ -124,22 +96,22 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
                           ],
                         ),
                       )
-                    : displayBookings.isEmpty
-                        ? _buildEmptyState()
-                        : RefreshIndicator(
-                            onRefresh: () async {
-                              await bookingProvider.loadBookings();
-                            },
-                            color: const Color(0xFF2196F3),
-                            child: ListView.builder(
-                              padding: const EdgeInsets.all(16.0),
-                              itemCount: displayBookings.length,
-                              itemBuilder: (context, index) {
-                                final booking = displayBookings[index];
-                                return _buildBookingCard(booking);
-                              },
-                            ),
-                          ),
+                    : bookingProvider.bookings.isEmpty
+                    ? _buildEmptyState()
+                    : RefreshIndicator(
+                        onRefresh: () async {
+                          await bookingProvider.loadBookings();
+                        },
+                        color: const Color(0xFF2196F3),
+                        child: ListView.builder(
+                          padding: const EdgeInsets.all(16.0),
+                          itemCount: bookingProvider.bookings.length,
+                          itemBuilder: (context, index) {
+                            final booking = bookingProvider.bookings[index];
+                            return _buildBookingCard(booking);
+                          },
+                        ),
+                      ),
               ),
             ],
           );
@@ -160,11 +132,7 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
               color: Colors.grey[100],
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              Icons.history,
-              size: 60,
-              color: Colors.grey[400],
-            ),
+            child: Icon(Icons.history, size: 60, color: Colors.grey[400]),
           ),
           const SizedBox(height: 24),
           Text(
@@ -178,10 +146,7 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
           const SizedBox(height: 8),
           Text(
             'Your booking history will appear here',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey[500],
-            ),
+            style: TextStyle(fontSize: 16, color: Colors.grey[500]),
           ),
           const SizedBox(height: 32),
           SizedBox(
@@ -208,10 +173,7 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
               icon: const Icon(Icons.event_seat, size: 20),
               label: const Text(
                 'Make Your First Booking',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
               ),
             ),
           ),
@@ -267,21 +229,27 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        DateFormat('MMM dd, yyyy • hh:mm a').format(booking.bookingDate),
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
-                        ),
+                        DateFormat(
+                          'MMM dd, yyyy • hh:mm a',
+                        ).format(booking.bookingDate),
+                        style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                       ),
                     ],
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
-                      color: _getStatusColor(booking.paymentStatus).withOpacity(0.1),
+                      color: _getStatusColor(
+                        booking.paymentStatus,
+                      ).withOpacity(0.1),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: _getStatusColor(booking.paymentStatus).withOpacity(0.3),
+                        color: _getStatusColor(
+                          booking.paymentStatus,
+                        ).withOpacity(0.3),
                       ),
                     ),
                     child: Row(
@@ -558,7 +526,8 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => ETicketScreen(bookingId: booking.id),
+                              builder: (context) =>
+                                  ETicketScreen(bookingId: booking.id),
                             ),
                           );
                         },
@@ -650,35 +619,5 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
       default:
         return Icons.payment;
     }
-  }
-
-  Widget _buildFilterChip(String filter, bool isSelected) {
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedFilter = filter;
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF2196F3) : Colors.grey[200],
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected ? const Color(0xFF2196F3) : Colors.grey[300]!,
-          ),
-        ),
-        child: Center(
-          child: Text(
-            filter,
-            style: TextStyle(
-              color: isSelected ? Colors.white : Colors.grey[700],
-              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-              fontSize: 14,
-            ),
-          ),
-        ),
-      ),
-    );
   }
 }

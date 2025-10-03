@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 class AuthProvider with ChangeNotifier {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
-  
+
   bool _isAuthenticated = false;
   bool _isLoading = false;
   String? _errorMessage;
@@ -37,20 +37,23 @@ class AuthProvider with ChangeNotifier {
     return await signInWithEmailAndPassword(email, password);
   }
 
-  Future<bool> signUp(String email, String password, String name, String phone) async {
+  Future<bool> signUp(
+    String email,
+    String password,
+    String name,
+    String phone,
+  ) async {
     return await signUpWithEmailAndPassword(email, password, name);
   }
 
   Future<bool> signInWithEmailAndPassword(String email, String password) async {
     _setLoading(true);
     _setError(null);
-    
+
     try {
-      final UserCredential result = await _firebaseAuth.signInWithEmailAndPassword(
-        email: email.trim(),
-        password: password,
-      );
-      
+      final UserCredential result = await _firebaseAuth
+          .signInWithEmailAndPassword(email: email.trim(), password: password);
+
       _currentUser = result.user;
       _isAuthenticated = result.user != null;
       notifyListeners();
@@ -66,19 +69,24 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  Future<bool> signUpWithEmailAndPassword(String email, String password, String name) async {
+  Future<bool> signUpWithEmailAndPassword(
+    String email,
+    String password,
+    String name,
+  ) async {
     _setLoading(true);
     _setError(null);
-    
+
     try {
-      final UserCredential result = await _firebaseAuth.createUserWithEmailAndPassword(
-        email: email.trim(),
-        password: password,
-      );
-      
+      final UserCredential result = await _firebaseAuth
+          .createUserWithEmailAndPassword(
+            email: email.trim(),
+            password: password,
+          );
+
       // Update display name
       await result.user?.updateDisplayName(name.trim());
-      
+
       _currentUser = result.user;
       _isAuthenticated = result.user != null;
       notifyListeners();
@@ -108,7 +116,7 @@ class AuthProvider with ChangeNotifier {
   Future<bool> resetPassword(String email) async {
     _setLoading(true);
     _setError(null);
-    
+
     try {
       await _firebaseAuth.sendPasswordResetEmail(email: email.trim());
       return true;

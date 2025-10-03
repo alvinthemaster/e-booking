@@ -91,7 +91,7 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
                             ],
                           ),
                           const SizedBox(height: 16),
-                          
+
                           // Selected Seats
                           Row(
                             children: [
@@ -103,32 +103,49 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
                                 ),
                               ),
                               Expanded(
-                                child: Text(
-                                  widget.selectedSeats.map((s) => s.id).join(', '),
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    color: Color(0xFF2196F3),
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                                child: Wrap(
+                                  spacing: 4,
+                                  children: widget.selectedSeats.map((seat) {
+                                    return Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: seat.hasDiscount
+                                            ? const Color(0xFF4CAF50)
+                                            : const Color(0xFF2196F3),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Text(
+                                        seat.id,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(),
                                 ),
                               ),
                             ],
                           ),
-                          
+
                           const SizedBox(height: 8),
-                          
+
                           // Fare Breakdown
                           _buildSummaryRow(
                             'Regular Seats:',
                             '${widget.selectedSeats.where((s) => !s.hasDiscount).length} × ₱150',
                           ),
-                          
+
                           if (widget.selectedSeats.any((s) => s.hasDiscount))
                             _buildSummaryRow(
                               'Discounted Seats:',
                               '${widget.selectedSeats.where((s) => s.hasDiscount).length} × ₱130',
                             ),
-                          
+
                           if (widget.discountAmount > 0) ...[
                             const Divider(height: 20),
                             _buildSummaryRow(
@@ -137,7 +154,7 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
                               color: const Color(0xFF4CAF50),
                             ),
                           ],
-                          
+
                           const Divider(height: 20),
                           _buildSummaryRow(
                             'Total Amount:',
@@ -241,7 +258,9 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
                               if (value == null || value.trim().isEmpty) {
                                 return 'Please enter your email address';
                               }
-                              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value.trim())) {
+                              if (!RegExp(
+                                r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                              ).hasMatch(value.trim())) {
                                 return 'Please enter a valid email address';
                               }
                               return null;
@@ -273,7 +292,12 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
                               if (value == null || value.trim().isEmpty) {
                                 return 'Please enter your phone number';
                               }
-                              if (!RegExp(r'^\+?[0-9]{10,15}$').hasMatch(value.trim().replaceAll(' ', '').replaceAll('-', ''))) {
+                              if (!RegExp(r'^\+?[0-9]{10,15}$').hasMatch(
+                                value
+                                    .trim()
+                                    .replaceAll(' ', '')
+                                    .replaceAll('-', ''),
+                              )) {
                                 return 'Please enter a valid phone number';
                               }
                               return null;
@@ -383,7 +407,12 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
     );
   }
 
-  Widget _buildSummaryRow(String label, String value, {bool isTotal = false, Color? color}) {
+  Widget _buildSummaryRow(
+    String label,
+    String value, {
+    bool isTotal = false,
+    Color? color,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(

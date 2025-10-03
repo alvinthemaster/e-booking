@@ -46,7 +46,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '774845116609',
     projectId: 'e-ticket-2e8d0',
     authDomain: 'e-ticket-2e8d0.firebaseapp.com',
-    databaseURL: 'https://e-ticket-2e8d0-default-rtdb.asia-southeast1.firebasedatabase.app',
+    databaseURL:
+        'https://e-ticket-2e8d0-default-rtdb.asia-southeast1.firebasedatabase.app',
     storageBucket: 'e-ticket-2e8d0.firebasestorage.app',
     measurementId: 'G-WHBYBYRCQS',
   );
@@ -56,7 +57,8 @@ class DefaultFirebaseOptions {
     appId: '1:774845116609:android:1136a5b7b1bcfdf0bc6440',
     messagingSenderId: '774845116609',
     projectId: 'e-ticket-2e8d0',
-    databaseURL: 'https://e-ticket-2e8d0-default-rtdb.asia-southeast1.firebasedatabase.app',
+    databaseURL:
+        'https://e-ticket-2e8d0-default-rtdb.asia-southeast1.firebasedatabase.app',
     storageBucket: 'e-ticket-2e8d0.firebasestorage.app',
   );
 
@@ -65,7 +67,8 @@ class DefaultFirebaseOptions {
     appId: '1:774845116609:ios:4a063baf2e30a984bc6440',
     messagingSenderId: '774845116609',
     projectId: 'e-ticket-2e8d0',
-    databaseURL: 'https://e-ticket-2e8d0-default-rtdb.asia-southeast1.firebasedatabase.app',
+    databaseURL:
+        'https://e-ticket-2e8d0-default-rtdb.asia-southeast1.firebasedatabase.app',
     storageBucket: 'e-ticket-2e8d0.firebasestorage.app',
     iosBundleId: 'com.uvexpress.eticket.uvexpressEticket',
   );
@@ -75,7 +78,8 @@ class DefaultFirebaseOptions {
     appId: '1:774845116609:ios:4a063baf2e30a984bc6440',
     messagingSenderId: '774845116609',
     projectId: 'e-ticket-2e8d0',
-    databaseURL: 'https://e-ticket-2e8d0-default-rtdb.asia-southeast1.firebasedatabase.app',
+    databaseURL:
+        'https://e-ticket-2e8d0-default-rtdb.asia-southeast1.firebasedatabase.app',
     storageBucket: 'e-ticket-2e8d0.firebasestorage.app',
     iosBundleId: 'com.uvexpress.eticket.uvexpressEticket',
   );
@@ -86,7 +90,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '774845116609',
     projectId: 'e-ticket-2e8d0',
     authDomain: 'e-ticket-2e8d0.firebaseapp.com',
-    databaseURL: 'https://e-ticket-2e8d0-default-rtdb.asia-southeast1.firebasedatabase.app',
+    databaseURL:
+        'https://e-ticket-2e8d0-default-rtdb.asia-southeast1.firebasedatabase.app',
     storageBucket: 'e-ticket-2e8d0.firebasestorage.app',
     measurementId: 'G-YX8RBWK5RX',
   );

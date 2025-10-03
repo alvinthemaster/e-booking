@@ -19,7 +19,7 @@ class ProfileScreen extends StatelessWidget {
       body: Consumer<app_auth.AuthProvider>(
         builder: (context, authProvider, _) {
           final user = authProvider.currentUser;
-          
+
           return SingleChildScrollView(
             padding: const EdgeInsets.all(20.0),
             child: Column(
@@ -56,7 +56,7 @@ class ProfileScreen extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      
+
                       // User Name
                       Text(
                         user?.displayName ?? 'User',
@@ -67,7 +67,7 @@ class ProfileScreen extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      
+
                       // User Email
                       Text(
                         user?.email ?? 'No email',
@@ -77,10 +77,13 @@ class ProfileScreen extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      
+
                       // User Status
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.green.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(20),
@@ -97,9 +100,9 @@ class ProfileScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-                
+
                 const SizedBox(height: 24),
-                
+
                 // Profile Options
                 _buildProfileSection('Account Settings', [
                   _buildProfileTile(
@@ -127,9 +130,9 @@ class ProfileScreen extends StatelessWidget {
                     },
                   ),
                 ]),
-                
+
                 const SizedBox(height: 20),
-                
+
                 _buildProfileSection('App Settings', [
                   _buildProfileTile(
                     icon: Icons.language,
@@ -156,9 +159,9 @@ class ProfileScreen extends StatelessWidget {
                     },
                   ),
                 ]),
-                
+
                 const SizedBox(height: 20),
-                
+
                 // Logout Section
                 _buildProfileSection('Account', [
                   _buildProfileTile(
@@ -171,9 +174,9 @@ class ProfileScreen extends StatelessWidget {
                     isDestructive: true,
                   ),
                 ]),
-                
+
                 const SizedBox(height: 40),
-                
+
                 // App Version
                 Text(
                   'UVexpress E-Ticket v1.0.0',
@@ -189,7 +192,7 @@ class ProfileScreen extends StatelessWidget {
       ),
     );
   }
-  
+
   Widget _buildProfileSection(String title, List<Widget> tiles) {
     return Container(
       width: double.infinity,
@@ -224,7 +227,7 @@ class ProfileScreen extends StatelessWidget {
       ),
     );
   }
-  
+
   Widget _buildProfileTile({
     required IconData icon,
     required String title,
@@ -242,15 +245,17 @@ class ProfileScreen extends StatelessWidget {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: isDestructive 
-                  ? Colors.red.withOpacity(0.1)
-                  : const Color(0xFF2196F3).withOpacity(0.1),
+                color: isDestructive
+                    ? Colors.red.withOpacity(0.1)
+                    : const Color(0xFF2196F3).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
                 icon,
                 size: 20,
-                color: isDestructive ? Colors.red[600] : const Color(0xFF2196F3),
+                color: isDestructive
+                    ? Colors.red[600]
+                    : const Color(0xFF2196F3),
               ),
             ),
             const SizedBox(width: 16),
@@ -276,18 +281,17 @@ class ProfileScreen extends StatelessWidget {
                 ],
               ),
             ),
-            Icon(
-              Icons.arrow_forward_ios,
-              size: 16,
-              color: Colors.grey[400],
-            ),
+            Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[400]),
           ],
         ),
       ),
     );
   }
-  
-  void _showLogoutDialog(BuildContext context, app_auth.AuthProvider authProvider) {
+
+  void _showLogoutDialog(
+    BuildContext context,
+    app_auth.AuthProvider authProvider,
+  ) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -304,10 +308,7 @@ class ProfileScreen extends StatelessWidget {
           ),
           content: Text(
             'Are you sure you want to logout?',
-            style: GoogleFonts.poppins(
-              fontSize: 16,
-              color: Colors.grey[600],
-            ),
+            style: GoogleFonts.poppins(fontSize: 16, color: Colors.grey[600]),
           ),
           actions: [
             TextButton(
@@ -325,28 +326,26 @@ class ProfileScreen extends StatelessWidget {
             TextButton(
               onPressed: () async {
                 Navigator.of(context).pop();
-                
+
                 // Show loading indicator
                 showDialog(
                   context: context,
                   barrierDismissible: false,
-                  builder: (context) => const Center(
-                    child: CircularProgressIndicator(),
-                  ),
+                  builder: (context) =>
+                      const Center(child: CircularProgressIndicator()),
                 );
-                
+
                 try {
                   await authProvider.signOut();
-                  
+
                   // Close loading dialog
                   Navigator.of(context).pop();
-                  
+
                   // Navigate to sign-in screen
-                  Navigator.of(context).pushNamedAndRemoveUntil(
-                    '/sign-in',
-                    (route) => false,
-                  );
-                  
+                  Navigator.of(
+                    context,
+                  ).pushNamedAndRemoveUntil('/sign-in', (route) => false);
+
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Logged out successfully'),
@@ -356,7 +355,7 @@ class ProfileScreen extends StatelessWidget {
                 } catch (e) {
                   // Close loading dialog
                   Navigator.of(context).pop();
-                  
+
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Error logging out: $e'),
@@ -378,7 +377,7 @@ class ProfileScreen extends StatelessWidget {
       },
     );
   }
-  
+
   void _showComingSoonDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -396,10 +395,7 @@ class ProfileScreen extends StatelessWidget {
           ),
           content: Text(
             'This feature is coming soon!',
-            style: GoogleFonts.poppins(
-              fontSize: 16,
-              color: Colors.grey[600],
-            ),
+            style: GoogleFonts.poppins(fontSize: 16, color: Colors.grey[600]),
           ),
           actions: [
             TextButton(
@@ -419,7 +415,7 @@ class ProfileScreen extends StatelessWidget {
       },
     );
   }
-  
+
   void _showAboutDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -439,10 +435,7 @@ class ProfileScreen extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Version: 1.0.0',
-                style: GoogleFonts.poppins(fontSize: 14),
-              ),
+              Text('Version: 1.0.0', style: GoogleFonts.poppins(fontSize: 14)),
               const SizedBox(height: 8),
               Text(
                 'UVexpress E-Ticket Reservation System for van seat booking with e-ticket generation and payment processing.',

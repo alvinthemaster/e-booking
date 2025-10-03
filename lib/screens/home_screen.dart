@@ -15,10 +15,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
 
-  final List<Widget> _screens = [
-    const HomeTab(),
-    const BookingHistoryScreen(),
-  ];
+  final List<Widget> _screens = [const HomeTab(), const BookingHistoryScreen()];
 
   @override
   Widget build(BuildContext context) {
@@ -50,10 +47,7 @@ class _HomeScreenState extends State<HomeScreen> {
           unselectedItemColor: Colors.grey,
           selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600),
           items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home),
-              label: 'Home',
-            ),
+            BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
             BottomNavigationBarItem(
               icon: Icon(Icons.history),
               label: 'Bookings',
@@ -86,37 +80,40 @@ class _HomeTabState extends State<HomeTab> {
 
   Future<void> _initializeFirebaseData() async {
     if (_isInitialized) return;
-    
+
     try {
-      final bookingProvider = Provider.of<BookingProvider>(context, listen: false);
-      
+      final bookingProvider = Provider.of<BookingProvider>(
+        context,
+        listen: false,
+      );
+
       debugPrint('🚀 Starting Firebase data initialization...');
-      
+
       // Initialize sample data (routes and schedules) only if needed - but don't notify during build
       await bookingProvider.initializeSampleDataSilent();
-      
+
       // Check for existing vans first - DON'T create sample vans if real ones exist
       debugPrint('🔍 Checking for existing vans in Firestore...');
       await bookingProvider.initializeSampleVansSilent();
-      
+
       // Force load fresh data from Firestore after initialization
       debugPrint('🔄 Force loading fresh van data from Firestore...');
       await bookingProvider.loadVans();
-      
+
       // Only set initialized state after everything is complete
       if (mounted) {
         setState(() {
           _isInitialized = true;
         });
       }
-      
+
       debugPrint('✅ Firebase data initialization completed');
-      
     } catch (e) {
       debugPrint('❌ Error initializing Firebase data: $e');
       if (mounted) {
         setState(() {
-          _isInitialized = true; // Set to true even on error to prevent retry loops
+          _isInitialized =
+              true; // Set to true even on error to prevent retry loops
         });
       }
     }
@@ -180,7 +177,10 @@ class _HomeTabState extends State<HomeTab> {
                           // Debug refresh button to manually sync with Firestore
                           IconButton(
                             onPressed: () async {
-                              final provider = Provider.of<BookingProvider>(context, listen: false);
+                              final provider = Provider.of<BookingProvider>(
+                                context,
+                                listen: false,
+                              );
                               debugPrint('🔄 Manual refresh triggered');
                               await provider.loadVans();
                             },
@@ -237,7 +237,7 @@ class _HomeTabState extends State<HomeTab> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const SizedBox(height: 20),
-                        
+
                         // Quick Stats
                         Row(
                           children: [
@@ -274,7 +274,9 @@ class _HomeTabState extends State<HomeTab> {
                                   borderRadius: BorderRadius.circular(16),
                                   border: Border.all(color: Colors.grey[200]!),
                                 ),
-                                child: const Center(child: CircularProgressIndicator()),
+                                child: const Center(
+                                  child: CircularProgressIndicator(),
+                                ),
                               );
                             }
 
@@ -321,75 +323,81 @@ class _HomeTabState extends State<HomeTab> {
                                   ],
                                 ),
                                 const SizedBox(height: 16),
-                                ...routes.map((route) => Container(
-                                  margin: const EdgeInsets.only(bottom: 12),
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey[50],
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: Colors.grey[200]!),
+                                ...routes.map(
+                                  (route) => Container(
+                                    margin: const EdgeInsets.only(bottom: 12),
+                                    padding: const EdgeInsets.all(16),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey[50],
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: Colors.grey[200]!,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                'From',
+                                                style: TextStyle(
+                                                  color: Colors.grey[600],
+                                                  fontSize: 12,
+                                                ),
+                                              ),
+                                              Text(
+                                                route.origin,
+                                                style: const TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        const Icon(
+                                          Icons.arrow_forward,
+                                          color: Color(0xFF2196F3),
+                                          size: 20,
+                                        ),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.end,
+                                            children: [
+                                              Text(
+                                                'To',
+                                                style: TextStyle(
+                                                  color: Colors.grey[600],
+                                                  fontSize: 12,
+                                                ),
+                                              ),
+                                              Text(
+                                                route.destination,
+                                                style: const TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          '₱${route.basePrice.toStringAsFixed(0)}',
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF4CAF50),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                  child: Row(
-                                    children: [
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              'From',
-                                              style: TextStyle(
-                                                color: Colors.grey[600],
-                                                fontSize: 12,
-                                              ),
-                                            ),
-                                            Text(
-                                              route.origin,
-                                              style: const TextStyle(
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      const Icon(
-                                        Icons.arrow_forward,
-                                        color: Color(0xFF2196F3),
-                                        size: 20,
-                                      ),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.end,
-                                          children: [
-                                            Text(
-                                              'To',
-                                              style: TextStyle(
-                                                color: Colors.grey[600],
-                                                fontSize: 12,
-                                              ),
-                                            ),
-                                            Text(
-                                              route.destination,
-                                              style: const TextStyle(
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        '₱${route.basePrice.toStringAsFixed(0)}',
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                          color: Color(0xFF4CAF50),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                )),
+                                ),
                               ],
                             );
                           },
@@ -435,7 +443,7 @@ class _HomeTabState extends State<HomeTab> {
                                     ],
                                   ),
                                   const SizedBox(height: 20),
-                                  
+
                                   // Debug info section (remove in production)
                                   Consumer<BookingProvider>(
                                     builder: (context, provider, child) {
@@ -443,12 +451,20 @@ class _HomeTabState extends State<HomeTab> {
                                         padding: const EdgeInsets.all(12),
                                         decoration: BoxDecoration(
                                           color: Colors.blue[50],
-                                          borderRadius: BorderRadius.circular(8),
-                                          border: Border.all(color: Colors.blue[200]!),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                          border: Border.all(
+                                            color: Colors.blue[200]!,
+                                          ),
                                         ),
                                         child: Row(
                                           children: [
-                                            Icon(Icons.info, color: Colors.blue[600], size: 16),
+                                            Icon(
+                                              Icons.info,
+                                              color: Colors.blue[600],
+                                              size: 16,
+                                            ),
                                             const SizedBox(width: 8),
                                             Text(
                                               'Debug: ${provider.vans.length} van(s) loaded from Firestore',
@@ -463,7 +479,7 @@ class _HomeTabState extends State<HomeTab> {
                                     },
                                   ),
                                   const SizedBox(height: 16),
-                                  
+
                                   if (bookingProvider.isLoading)
                                     const Center(
                                       child: Padding(
@@ -477,15 +493,22 @@ class _HomeTabState extends State<HomeTab> {
                                       decoration: BoxDecoration(
                                         color: Colors.grey[50],
                                         borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(color: Colors.grey[200]!),
+                                        border: Border.all(
+                                          color: Colors.grey[200]!,
+                                        ),
                                       ),
                                       child: Column(
                                         children: [
-                                          Icon(Icons.info, color: Colors.grey[400]),
+                                          Icon(
+                                            Icons.info,
+                                            color: Colors.grey[400],
+                                          ),
                                           const SizedBox(height: 8),
                                           Text(
                                             'No vans available in queue',
-                                            style: TextStyle(color: Colors.grey[600]),
+                                            style: TextStyle(
+                                              color: Colors.grey[600],
+                                            ),
                                           ),
                                         ],
                                       ),
@@ -494,7 +517,8 @@ class _HomeTabState extends State<HomeTab> {
                                     Column(
                                       children: bookingProvider.vans.map((van) {
                                         return _buildVanQueueCard(
-                                          vanNumber: van.queuePosition.toString(),
+                                          vanNumber: van.queuePosition
+                                              .toString(),
                                           plateNumber: van.plateNumber,
                                           driverName: van.driver.name,
                                           status: van.statusDisplay,
@@ -506,7 +530,8 @@ class _HomeTabState extends State<HomeTab> {
                                             Navigator.push(
                                               context,
                                               MaterialPageRoute(
-                                                builder: (context) => const SeatSelectionScreen(),
+                                                builder: (context) =>
+                                                    const SeatSelectionScreen(),
                                               ),
                                             );
                                           },
@@ -532,7 +557,12 @@ class _HomeTabState extends State<HomeTab> {
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
+  Widget _buildStatCard(
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -553,13 +583,7 @@ class _HomeTabState extends State<HomeTab> {
               color: color,
             ),
           ),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[600],
-            ),
-          ),
+          Text(title, style: TextStyle(fontSize: 14, color: Colors.grey[600])),
         ],
       ),
     );
@@ -604,11 +628,7 @@ class _HomeTabState extends State<HomeTab> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(
-                        Icons.directions_bus,
-                        color: Colors.white,
-                        size: 18,
-                      ),
+                      Icon(Icons.directions_bus, color: Colors.white, size: 18),
                       Text(
                         vanNumber,
                         style: const TextStyle(
@@ -621,9 +641,9 @@ class _HomeTabState extends State<HomeTab> {
                   ),
                 ),
               ),
-              
+
               const SizedBox(width: 12),
-              
+
               // Van Details
               Expanded(
                 child: Column(
@@ -658,11 +678,7 @@ class _HomeTabState extends State<HomeTab> {
                     const SizedBox(height: 2),
                     Row(
                       children: [
-                        Icon(
-                          Icons.person,
-                          size: 14,
-                          color: Colors.grey[600],
-                        ),
+                        Icon(Icons.person, size: 14, color: Colors.grey[600]),
                         const SizedBox(width: 4),
                         Text(
                           driverName,
@@ -687,7 +703,9 @@ class _HomeTabState extends State<HomeTab> {
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
-                            color: isActive ? const Color(0xFF4CAF50) : Colors.grey[600],
+                            color: isActive
+                                ? const Color(0xFF4CAF50)
+                                : Colors.grey[600],
                           ),
                         ),
                       ],
@@ -695,10 +713,13 @@ class _HomeTabState extends State<HomeTab> {
                   ],
                 ),
               ),
-              
+
               // Status Badge
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
                 decoration: BoxDecoration(
                   color: statusColor,
                   borderRadius: BorderRadius.circular(15),
@@ -714,92 +735,84 @@ class _HomeTabState extends State<HomeTab> {
               ),
             ],
           ),
-          
-                const SizedBox(height: 12),
-                
-                Row(
-                  children: [
-                    Icon(
-                      Icons.people,
-                      size: 16,
-                      color: Colors.grey[600],
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Occupancy: $occupancy/$maxSeats',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey[700],
+
+          const SizedBox(height: 12),
+
+          Row(
+            children: [
+              Icon(Icons.people, size: 16, color: Colors.grey[600]),
+              const SizedBox(width: 6),
+              Text(
+                'Occupancy: $occupancy/$maxSeats',
+                style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Container(
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                  child: FractionallySizedBox(
+                    alignment: Alignment.centerLeft,
+                    widthFactor: occupancy / maxSeats,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: isActive ? statusColor : Colors.grey[500],
+                        borderRadius: BorderRadius.circular(3),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Container(
-                        height: 6,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[300],
-                          borderRadius: BorderRadius.circular(3),
-                        ),
-                        child: FractionallySizedBox(
-                          alignment: Alignment.centerLeft,
-                          widthFactor: occupancy / maxSeats,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: isActive ? statusColor : Colors.grey[500],
-                              borderRadius: BorderRadius.circular(3),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '${((occupancy / maxSeats) * 100).toInt()}%',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-                
-                const SizedBox(height: 16),
-                
-                // Book Button
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton(
-                    onPressed: onBook,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: isActive ? statusColor : Colors.grey[400],
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: isActive ? 3 : 1,
-                      shadowColor: isActive ? statusColor.withOpacity(0.3) : Colors.grey.withOpacity(0.2),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          isActive ? Icons.event_seat : Icons.schedule,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          isActive ? 'Book Now' : 'Pre-Book',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
                     ),
                   ),
                 ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '${((occupancy / maxSeats) * 100).toInt()}%',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+
+          // Book Button
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton(
+              onPressed: onBook,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isActive ? statusColor : Colors.grey[400],
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: isActive ? 3 : 1,
+                shadowColor: isActive
+                    ? statusColor.withOpacity(0.3)
+                    : Colors.grey.withOpacity(0.2),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(isActive ? Icons.event_seat : Icons.schedule, size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    isActive ? 'Book Now' : 'Pre-Book',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );

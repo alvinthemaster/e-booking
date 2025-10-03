@@ -12,7 +12,7 @@ void main() {
   testWidgets('UVexpress app smoke test', (WidgetTester tester) async {
     // Build our app and trigger a frame.
     await tester.pumpWidget(const UVExpressApp());
-    
+
     // Wait for the app to settle
     await tester.pumpAndSettle();
 

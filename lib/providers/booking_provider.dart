@@ -70,6 +70,7 @@ class BookingProvider with ChangeNotifier {
     required double discountAmount,
     required double totalAmount,
     required String paymentMethod,
+    PaymentStatus? paymentStatus, // Add optional payment status parameter
     Map<String, dynamic>? passengerDetails,
   }) async {
     try {
@@ -82,8 +83,19 @@ class BookingProvider with ChangeNotifier {
         throw Exception('User not authenticated');
       }
 
-      // Check seat availability
-      final seatsAvailable = await _bookingService.areSeatsAvailable(routeId, seatIds);
+      // Get the active van for this route
+      final activeVan = await _bookingService.getActiveVanForRoute(routeId);
+      if (activeVan == null) {
+        throw Exception('No active van available for this route');
+      }
+
+      // Check seat availability for the specific van
+      final seatsAvailable = await _bookingService.areSeatsAvailable(
+        routeId,
+        seatIds,
+        activeVan.plateNumber,
+        activeVan.driver.name,
+      );
       if (!seatsAvailable) {
         throw Exception('One or more selected seats are no longer available');
       }
@@ -105,9 +117,14 @@ class BookingProvider with ChangeNotifier {
         discountAmount: discountAmount,
         totalAmount: totalAmount,
         paymentMethod: paymentMethod,
-        paymentStatus: PaymentStatus.pending,
-        bookingStatus: BookingStatus.active,
+        paymentStatus:
+            paymentStatus ??
+            PaymentStatus.pending, // Use provided status or default to pending
+        bookingStatus: BookingStatus.pending, // New bookings start as pending
         passengerDetails: passengerDetails,
+        vanPlateNumber: activeVan.plateNumber,
+        vanDriverName: activeVan.driver.name,
+        vanDriverContact: activeVan.driver.contact,
       );
 
       final bookingId = await _bookingService.createBooking(booking);
@@ -148,7 +165,10 @@ class BookingProvider with ChangeNotifier {
   }
 
   /// Update payment status
-  Future<void> updatePaymentStatus(String bookingId, PaymentStatus status) async {
+  Future<void> updatePaymentStatus(
+    String bookingId,
+    PaymentStatus status,
+  ) async {
     try {
       await _bookingService.updatePaymentStatus(bookingId, status);
 
@@ -177,13 +197,24 @@ class BookingProvider with ChangeNotifier {
       _filteredBookings = List.from(_bookings);
     } else {
       _filteredBookings = _bookings.where((booking) {
-        return booking.userName.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-               booking.userEmail.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-               booking.origin.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-               booking.destination.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-               booking.routeName.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-               booking.id.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-               (booking.eTicketId?.toLowerCase().contains(_searchQuery.toLowerCase()) ?? false);
+        return booking.userName.toLowerCase().contains(
+              _searchQuery.toLowerCase(),
+            ) ||
+            booking.userEmail.toLowerCase().contains(
+              _searchQuery.toLowerCase(),
+            ) ||
+            booking.origin.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+            booking.destination.toLowerCase().contains(
+              _searchQuery.toLowerCase(),
+            ) ||
+            booking.routeName.toLowerCase().contains(
+              _searchQuery.toLowerCase(),
+            ) ||
+            booking.id.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+            (booking.eTicketId?.toLowerCase().contains(
+                  _searchQuery.toLowerCase(),
+                ) ??
+                false);
       }).toList();
     }
   }
@@ -203,7 +234,18 @@ class BookingProvider with ChangeNotifier {
   /// Check if seats are available
   Future<bool> areSeatsAvailable(String routeId, List<String> seatIds) async {
     try {
-      return await _bookingService.areSeatsAvailable(routeId, seatIds);
+      // Get the active van for this route
+      final activeVan = await _bookingService.getActiveVanForRoute(routeId);
+      if (activeVan == null) {
+        return false; // No active van means no seats available
+      }
+
+      return await _bookingService.areSeatsAvailable(
+        routeId,
+        seatIds,
+        activeVan.plateNumber,
+        activeVan.driver.name,
+      );
     } catch (e) {
       _errorMessage = e.toString();
       debugPrint('Error checking seat availability: $e');
@@ -254,22 +296,24 @@ class BookingProvider with ChangeNotifier {
       debugPrint('🔍 Loading vans from Firestore...');
       _isLoading = true;
       notifyListeners();
-      
+
       // Clear existing vans first to avoid showing stale data
       _vans.clear();
-      
+
       final loadedVans = await _bookingService.getActiveVans();
       debugPrint('📄 Loaded ${loadedVans.length} vans from Firestore');
-      
+
       // Debug print to see loaded vans
       for (var van in loadedVans) {
-        debugPrint('🚐 Van: ${van.plateNumber} - Driver: ${van.driver.name} - Raw Status: "${van.status}" - Display: "${van.statusDisplay}" - Queue: ${van.queuePosition} (${van.currentOccupancy}/${van.capacity})');
+        debugPrint(
+          '🚐 Van: ${van.plateNumber} - Driver: ${van.driver.name} - Raw Status: "${van.status}" - Display: "${van.statusDisplay}" - Queue: ${van.queuePosition} (${van.currentOccupancy}/${van.capacity})',
+        );
       }
-      
+
       _vans = loadedVans;
       _isLoading = false;
       debugPrint('✅ Successfully loaded ${_vans.length} vans from Firestore');
-      
+
       notifyListeners();
     } catch (e) {
       _errorMessage = e.toString();
@@ -283,32 +327,36 @@ class BookingProvider with ChangeNotifier {
   Future<void> initializeSampleVans() async {
     try {
       debugPrint('🔍 Checking if vans already exist in Firestore...');
-      
+
       // First check if any vans exist in Firestore
       final existingVans = await _bookingService.getActiveVans();
-      
+
       if (existingVans.isNotEmpty) {
-        debugPrint('✅ Found ${existingVans.length} existing vans in Firestore, skipping sample data creation');
+        debugPrint(
+          '✅ Found ${existingVans.length} existing vans in Firestore, skipping sample data creation',
+        );
         return; // Don't create sample data if real vans exist
       }
-      
-      debugPrint('📝 No vans found, checking if sample data should be created...');
-      
+
+      debugPrint(
+        '📝 No vans found, checking if sample data should be created...',
+      );
+
       // Only create sample data if explicitly needed for development
       // In production, this should be disabled
-      const bool shouldCreateSampleVans = false; // Set to false to prevent sample data
-      
+      const bool shouldCreateSampleVans =
+          false; // Set to false to prevent sample data
+
       if (!shouldCreateSampleVans) {
         debugPrint('⏭️ Sample van creation disabled');
         return;
       }
-      
+
       // Sample van creation code here (only runs if enabled)
       debugPrint('📝 Creating sample van data...');
       await _bookingService.initializeSampleVans();
       await loadVans();
       debugPrint('✅ Sample vans initialized successfully');
-      
     } catch (e) {
       _errorMessage = e.toString();
       debugPrint('❌ Error initializing sample vans: $e');
@@ -319,32 +367,36 @@ class BookingProvider with ChangeNotifier {
   Future<void> initializeSampleVansSilent() async {
     try {
       debugPrint('🔍 Checking if vans already exist in Firestore...');
-      
+
       // First check if any vans exist in Firestore
       final existingVans = await _bookingService.getActiveVans();
-      
+
       if (existingVans.isNotEmpty) {
-        debugPrint('✅ Found ${existingVans.length} existing vans in Firestore, skipping sample data creation');
+        debugPrint(
+          '✅ Found ${existingVans.length} existing vans in Firestore, skipping sample data creation',
+        );
         return; // Don't create sample data if real vans exist
       }
-      
-      debugPrint('📝 No vans found, checking if sample data should be created...');
-      
+
+      debugPrint(
+        '📝 No vans found, checking if sample data should be created...',
+      );
+
       // Only create sample data if explicitly needed for development
       // In production, this should be disabled
-      const bool shouldCreateSampleVans = false; // Set to false to prevent sample data
-      
+      const bool shouldCreateSampleVans =
+          false; // Set to false to prevent sample data
+
       if (!shouldCreateSampleVans) {
         debugPrint('⏭️ Sample van creation disabled');
         return;
       }
-      
+
       // Sample van creation code here (only runs if enabled)
       debugPrint('📝 Creating sample van data...');
       await _bookingService.initializeSampleVans();
       // Don't call loadVans() here to avoid notifyListeners
       debugPrint('✅ Sample vans initialized successfully');
-      
     } catch (e) {
       _errorMessage = e.toString();
       debugPrint('❌ Error initializing sample vans: $e');

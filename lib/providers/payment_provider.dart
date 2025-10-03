@@ -12,11 +12,7 @@ class PaymentProvider with ChangeNotifier {
   String get selectedMethod => _selectedMethod;
   String? get errorMessage => _errorMessage;
 
-  List<String> get availablePaymentMethods => [
-    'GCash',
-    'Maya',
-    'PayPal',
-  ];
+  List<String> get availablePaymentMethods => ['GCash', 'Maya', 'PayPal'];
 
   void setPaymentMethod(String method) {
     _selectedMethod = method;

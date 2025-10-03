@@ -8,20 +8,21 @@ import 'providers/seat_provider.dart';
 import 'providers/payment_provider.dart';
 import 'providers/auth_provider.dart' as app_auth;
 import 'screens/auth/sign_in_screen.dart';
+import 'widgets/user_booking_listener.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Initialize Firebase
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
   // Verify Firebase initialization
-  print('Firebase apps initialized: ${Firebase.apps.map((app) => app.name).toList()}');
-  
+  print(
+    'Firebase apps initialized: ${Firebase.apps.map((app) => app.name).toList()}',
+  );
+
   runApp(const UVExpressApp());
 }
 
@@ -65,7 +66,10 @@ class UVExpressApp extends StatelessWidget {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 16,
+                    horizontal: 24,
+                  ),
                 ),
               ),
             ),
@@ -74,8 +78,10 @@ class UVExpressApp extends StatelessWidget {
               '/sign-in': (context) => const SignInScreen(),
               '/profile': (context) => const ProfileScreen(),
             },
-            // Show sign-in screen if not authenticated, otherwise show home
-            home: authProvider.isAuthenticated ? const HomeScreen() : const SignInScreen(),
+            // Show sign-in screen if not authenticated, otherwise show home with booking listener
+            home: authProvider.isAuthenticated
+                ? const UserBookingListener(child: HomeScreen())
+                : const SignInScreen(),
           );
         },
       ),

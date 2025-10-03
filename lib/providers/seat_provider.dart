@@ -1,7 +1,9 @@
 import 'package:flutter/foundation.dart';
 import '../models/booking_models.dart';
+import '../services/firebase_booking_service.dart';
 
 class SeatProvider with ChangeNotifier {
+  final FirebaseBookingService _bookingService = FirebaseBookingService();
   List<Seat> _seats = [];
   List<Seat> _selectedSeats = [];
   final double _baseFare = 150.0;
@@ -14,27 +16,89 @@ class SeatProvider with ChangeNotifier {
 
   int get maxSeatsPerBooking => 5;
 
-  Future<void> initializeSeats() async {
+  Future<void> initializeSeats({String? routeId}) async {
     // Initialize van seats with new layout (18 seats total)
     // 2 seats beside driver + 4 rows of 4 seats each = 18 seats
     _seats = [];
-    
+
     // First row - beside driver (2 seats)
     _seats.add(Seat(id: 'D1A', row: 0, position: 'driver-right-window'));
     _seats.add(Seat(id: 'D1B', row: 0, position: 'driver-right-aisle'));
-    
+
     // Regular rows (4 rows with 4 seats each)
     for (int row = 1; row <= 4; row++) {
       // Left side seats (2 seats)
       _seats.add(Seat(id: 'L${row}A', row: row, position: 'left-window'));
       _seats.add(Seat(id: 'L${row}B', row: row, position: 'left-aisle'));
-      
-      // Right side seats (2 seats) 
+
+      // Right side seats (2 seats)
       _seats.add(Seat(id: 'R${row}A', row: row, position: 'right-aisle'));
       _seats.add(Seat(id: 'R${row}B', row: row, position: 'right-window'));
     }
+
+    // Load reserved seats from Firebase if routeId is provided
+    if (routeId != null) {
+      try {
+        // Get the active van for this route
+        final activeVan = await _bookingService.getActiveVanForRoute(routeId);
+        if (activeVan != null) {
+          final reservedSeatIds = await _bookingService.getReservedSeats(
+            routeId,
+            activeVan.plateNumber,
+            activeVan.driver.name,
+          );
+
+          // Mark reserved seats
+          for (final seat in _seats) {
+            if (reservedSeatIds.contains(seat.id)) {
+              seat.isReserved = true;
+              seat.isSelected = false; // Ensure reserved seats are not selected
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint('Error loading reserved seats: $e');
+        // Continue without reserved seats if there's an error
+      }
+    }
+
     _selectedSeats = _seats.where((seat) => seat.isSelected).toList();
     notifyListeners();
+  }
+
+  /// Refresh seat availability from Firebase
+  Future<void> refreshSeatAvailability({String? routeId}) async {
+    if (routeId == null) return;
+
+    try {
+      // Get the active van for this route
+      final activeVan = await _bookingService.getActiveVanForRoute(routeId);
+      if (activeVan != null) {
+        final reservedSeatIds = await _bookingService.getReservedSeats(
+          routeId,
+          activeVan.plateNumber,
+          activeVan.driver.name,
+        );
+
+        // Update seat reservation status
+        for (final seat in _seats) {
+          final wasReserved = seat.isReserved;
+          seat.isReserved = reservedSeatIds.contains(seat.id);
+
+          // If a seat was just reserved and was selected, deselect it
+          if (!wasReserved && seat.isReserved && seat.isSelected) {
+            seat.isSelected = false;
+            seat.hasDiscount = false;
+          }
+        }
+
+        // Update selected seats list
+        _selectedSeats = _seats.where((seat) => seat.isSelected).toList();
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Error refreshing seat availability: $e');
+    }
   }
 
   bool canSelectSeat(Seat seat) {
@@ -48,14 +112,14 @@ class SeatProvider with ChangeNotifier {
     if (seatIndex == -1) return;
 
     final seat = _seats[seatIndex];
-    
+
     if (!canSelectSeat(seat) && !seat.isSelected) {
       // Cannot select more seats
       return;
     }
 
     seat.isSelected = !seat.isSelected;
-    
+
     if (seat.isSelected) {
       _selectedSeats.add(seat);
     } else {
@@ -94,7 +158,8 @@ class SeatProvider with ChangeNotifier {
     return discount;
   }
 
-  int get regularFareSeats => _selectedSeats.where((s) => !s.hasDiscount).length;
+  int get regularFareSeats =>
+      _selectedSeats.where((s) => !s.hasDiscount).length;
   int get discountedSeats => _selectedSeats.where((s) => s.hasDiscount).length;
 
   Future<void> clearSelection() async {
@@ -115,7 +180,7 @@ class SeatProvider with ChangeNotifier {
         _seats[seatIndex].isSelected = false;
       }
     }
-    
+
     _selectedSeats.clear();
     notifyListeners();
   }

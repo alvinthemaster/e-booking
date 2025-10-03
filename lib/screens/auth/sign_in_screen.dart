@@ -11,14 +11,14 @@ class SignInScreen extends StatefulWidget {
   State<SignInScreen> createState() => _SignInScreenState();
 }
 
-class _SignInScreenState extends State<SignInScreen> 
+class _SignInScreenState extends State<SignInScreen>
     with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
   bool _isLoading = false;
-  
+
   late AnimationController _fadeController;
   late AnimationController _slideController;
   late Animation<double> _fadeAnimation;
@@ -35,23 +35,16 @@ class _SignInScreenState extends State<SignInScreen>
       vsync: this,
       duration: const Duration(milliseconds: 800),
     );
-    
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _fadeController,
-      curve: Curves.easeInOut,
-    ));
-    
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.3),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _slideController,
-      curve: Curves.easeOutCubic,
-    ));
-    
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut),
+    );
+
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
+          CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic),
+        );
+
     _fadeController.forward();
     Future.delayed(const Duration(milliseconds: 300), () {
       _slideController.forward();
@@ -69,16 +62,19 @@ class _SignInScreenState extends State<SignInScreen>
 
   Future<void> _signIn() async {
     if (!_formKey.currentState!.validate()) return;
-    
+
     setState(() => _isLoading = true);
-    
+
     try {
-      final authProvider = Provider.of<app_auth.AuthProvider>(context, listen: false);
+      final authProvider = Provider.of<app_auth.AuthProvider>(
+        context,
+        listen: false,
+      );
       final success = await authProvider.signIn(
         _emailController.text.trim(),
         _passwordController.text,
       );
-      
+
       if (success && mounted) {
         Navigator.of(context).pushReplacementNamed('/home');
       } else if (mounted) {
@@ -87,7 +83,9 @@ class _SignInScreenState extends State<SignInScreen>
             content: Text(authProvider.errorMessage ?? 'Sign in failed'),
             backgroundColor: Colors.red[600],
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
         );
       }
@@ -104,11 +102,7 @@ class _SignInScreenState extends State<SignInScreen>
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF1976D2),
-              Color(0xFF2196F3),
-              Color(0xFF42A5F5),
-            ],
+            colors: [Color(0xFF1976D2), Color(0xFF2196F3), Color(0xFF42A5F5)],
           ),
         ),
         child: SafeArea(
@@ -140,7 +134,10 @@ class _SignInScreenState extends State<SignInScreen>
                                 height: 80,
                                 decoration: const BoxDecoration(
                                   gradient: LinearGradient(
-                                    colors: [Color(0xFF1976D2), Color(0xFF42A5F5)],
+                                    colors: [
+                                      Color(0xFF1976D2),
+                                      Color(0xFF42A5F5),
+                                    ],
                                   ),
                                   shape: BoxShape.circle,
                                 ),
@@ -151,7 +148,7 @@ class _SignInScreenState extends State<SignInScreen>
                                 ),
                               ),
                               const SizedBox(height: 24),
-                              
+
                               Text(
                                 'UVexpress',
                                 style: GoogleFonts.poppins(
@@ -170,7 +167,7 @@ class _SignInScreenState extends State<SignInScreen>
                                 ),
                               ),
                               const SizedBox(height: 32),
-                              
+
                               // Welcome Text
                               Text(
                                 'Welcome Back!',
@@ -189,7 +186,7 @@ class _SignInScreenState extends State<SignInScreen>
                                 ),
                               ),
                               const SizedBox(height: 32),
-                              
+
                               // Email Field
                               TextFormField(
                                 controller: _emailController,
@@ -198,7 +195,9 @@ class _SignInScreenState extends State<SignInScreen>
                                   if (value?.isEmpty ?? true) {
                                     return 'Please enter your email';
                                   }
-                                  if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value!)) {
+                                  if (!RegExp(
+                                    r'^[^@]+@[^@]+\.[^@]+',
+                                  ).hasMatch(value!)) {
                                     return 'Please enter a valid email';
                                   }
                                   return null;
@@ -211,7 +210,9 @@ class _SignInScreenState extends State<SignInScreen>
                                   ),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(color: Colors.grey[300]!),
+                                    borderSide: BorderSide(
+                                      color: Colors.grey[300]!,
+                                    ),
                                   ),
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
@@ -226,7 +227,7 @@ class _SignInScreenState extends State<SignInScreen>
                                 ),
                               ),
                               const SizedBox(height: 16),
-                              
+
                               // Password Field
                               TextFormField(
                                 controller: _passwordController,
@@ -248,20 +249,23 @@ class _SignInScreenState extends State<SignInScreen>
                                   ),
                                   suffixIcon: IconButton(
                                     icon: Icon(
-                                      _isPasswordVisible 
-                                          ? Icons.visibility_off 
+                                      _isPasswordVisible
+                                          ? Icons.visibility_off
                                           : Icons.visibility,
                                       color: Colors.grey[600],
                                     ),
                                     onPressed: () {
                                       setState(() {
-                                        _isPasswordVisible = !_isPasswordVisible;
+                                        _isPasswordVisible =
+                                            !_isPasswordVisible;
                                       });
                                     },
                                   ),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(color: Colors.grey[300]!),
+                                    borderSide: BorderSide(
+                                      color: Colors.grey[300]!,
+                                    ),
                                   ),
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
@@ -276,7 +280,7 @@ class _SignInScreenState extends State<SignInScreen>
                                 ),
                               ),
                               const SizedBox(height: 8),
-                              
+
                               // Forgot Password
                               Align(
                                 alignment: Alignment.centerRight,
@@ -294,7 +298,7 @@ class _SignInScreenState extends State<SignInScreen>
                                 ),
                               ),
                               const SizedBox(height: 24),
-                              
+
                               // Sign In Button
                               SizedBox(
                                 width: double.infinity,
@@ -328,7 +332,7 @@ class _SignInScreenState extends State<SignInScreen>
                                 ),
                               ),
                               const SizedBox(height: 24),
-                              
+
                               // Sign Up Link
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
@@ -343,7 +347,8 @@ class _SignInScreenState extends State<SignInScreen>
                                     onTap: () {
                                       Navigator.of(context).push(
                                         MaterialPageRoute(
-                                          builder: (context) => const SignUpScreen(),
+                                          builder: (context) =>
+                                              const SignUpScreen(),
                                         ),
                                       );
                                     },

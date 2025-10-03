@@ -50,7 +50,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
             elevation: 0,
             leading: IconButton(
               icon: const Icon(Icons.arrow_back, color: Color(0xFF2196F3)),
-              onPressed: paymentProvider.isProcessing ? null : () => Navigator.pop(context),
+              onPressed: paymentProvider.isProcessing
+                  ? null
+                  : () => Navigator.pop(context),
             ),
           ),
           body: Column(
@@ -98,8 +100,14 @@ class _PaymentScreenState extends State<PaymentScreen> {
                             ),
                             const SizedBox(height: 16),
 
-                            _buildSummaryRow('Passenger:', widget.passengerName),
-                            _buildSummaryRow('Seats:', widget.selectedSeats.map((s) => s.id).join(', ')),
+                            _buildSummaryRow(
+                              'Passenger:',
+                              widget.passengerName,
+                            ),
+                            _buildSummaryRow(
+                              'Seats:',
+                              widget.selectedSeats.map((s) => s.id).join(', '),
+                            ),
                             _buildSummaryRow('Email:', widget.passengerEmail),
                             const Divider(height: 20),
                             _buildSummaryRowWithPeso(
@@ -150,8 +158,13 @@ class _PaymentScreenState extends State<PaymentScreen> {
                             ),
                             const SizedBox(height: 16),
 
-                            ...paymentProvider.availablePaymentMethods.map((method) {
-                              return _buildPaymentMethodTile(method, paymentProvider);
+                            ...paymentProvider.availablePaymentMethods.map((
+                              method,
+                            ) {
+                              return _buildPaymentMethodTile(
+                                method,
+                                paymentProvider,
+                              );
                             }),
                           ],
                         ),
@@ -160,16 +173,21 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       const SizedBox(height: 24),
 
                       // Payment Status
-                      if (paymentProvider.currentStatus != PaymentStatus.pending ||
+                      if (paymentProvider.currentStatus !=
+                              PaymentStatus.pending ||
                           paymentProvider.errorMessage != null)
                         Container(
                           width: double.infinity,
                           padding: const EdgeInsets.all(20),
                           decoration: BoxDecoration(
-                            color: paymentProvider.getPaymentStatusColor().withOpacity(0.1),
+                            color: paymentProvider
+                                .getPaymentStatusColor()
+                                .withOpacity(0.1),
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                              color: paymentProvider.getPaymentStatusColor().withOpacity(0.3),
+                              color: paymentProvider
+                                  .getPaymentStatusColor()
+                                  .withOpacity(0.3),
                             ),
                           ),
                           child: Column(
@@ -186,7 +204,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w500,
-                                  color: paymentProvider.getPaymentStatusColor(),
+                                  color: paymentProvider
+                                      .getPaymentStatusColor(),
                                 ),
                               ),
                             ],
@@ -217,12 +236,16 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       width: double.infinity,
                       height: 56,
                       child: ElevatedButton(
-                        onPressed: paymentProvider.isProcessing ||
-                                paymentProvider.currentStatus == PaymentStatus.paid
+                        onPressed:
+                            paymentProvider.isProcessing ||
+                                paymentProvider.currentStatus ==
+                                    PaymentStatus.paid
                             ? null
                             : () => _processPayment(paymentProvider),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: paymentProvider.currentStatus == PaymentStatus.paid
+                          backgroundColor:
+                              paymentProvider.currentStatus ==
+                                  PaymentStatus.paid
                               ? const Color(0xFF4CAF50)
                               : const Color(0xFF2196F3),
                           foregroundColor: Colors.white,
@@ -240,7 +263,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                     height: 20,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white,
+                                      ),
                                     ),
                                   ),
                                   SizedBox(width: 12),
@@ -253,38 +278,41 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                   ),
                                 ],
                               )
-                            : paymentProvider.currentStatus == PaymentStatus.paid
-                                ? const Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(Icons.check_circle, size: 24),
-                                      SizedBox(width: 12),
-                                      Text(
-                                        'View E-Ticket',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ],
-                                  )
-                                : Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        _getPaymentMethodIcon(paymentProvider.selectedMethod),
-                                        size: 24,
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Text(
-                                        'Pay with ${paymentProvider.selectedMethod}',
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ],
+                            : paymentProvider.currentStatus ==
+                                  PaymentStatus.paid
+                            ? const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.check_circle, size: 24),
+                                  SizedBox(width: 12),
+                                  Text(
+                                    'View E-Ticket',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
+                                ],
+                              )
+                            : Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    _getPaymentMethodIcon(
+                                      paymentProvider.selectedMethod,
+                                    ),
+                                    size: 24,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    'Pay with ${paymentProvider.selectedMethod}',
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
                       ),
                     ),
                   ],
@@ -323,7 +351,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
-  Widget _buildSummaryRowWithPeso(String label, String amount, {bool isTotal = false}) {
+  Widget _buildSummaryRowWithPeso(
+    String label,
+    String amount, {
+    bool isTotal = false,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
@@ -358,9 +390,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
-  Widget _buildPaymentMethodTile(String method, PaymentProvider paymentProvider) {
+  Widget _buildPaymentMethodTile(
+    String method,
+    PaymentProvider paymentProvider,
+  ) {
     final isSelected = paymentProvider.selectedMethod == method;
-    
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -428,50 +463,104 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   Future<void> _processPayment(PaymentProvider paymentProvider) async {
-    final success = await paymentProvider.processPayment(
-      bookingId: 'UVE${DateTime.now().millisecondsSinceEpoch}',
-      amount: widget.totalAmount,
-      method: paymentProvider.selectedMethod,
-    );
+    try {
+      // Add validation before processing
+      if (widget.selectedSeats.isEmpty) {
+        throw Exception('No seats selected');
+      }
 
-    if (success && mounted) {
-      // Create booking
-      final bookingProvider = Provider.of<BookingProvider>(context, listen: false);
-      final seatProvider = Provider.of<SeatProvider>(context, listen: false);
-
-      final bookingId = await bookingProvider.createBooking(
-        routeId: 'route-001', // TODO: Pass route information through navigation
-        routeName: 'Glan to General Santos',
-        origin: 'Glan',
-        destination: 'General Santos',
-        departureTime: DateTime.now().add(const Duration(hours: 2)),
-        seatIds: widget.selectedSeats.map((seat) => seat.id).toList(),
-        basePrice: widget.totalAmount - widget.discountAmount,
-        discountAmount: widget.discountAmount,
-        totalAmount: widget.totalAmount,
-        paymentMethod: paymentProvider.selectedMethod,
-        passengerDetails: {
-          'name': widget.passengerName,
-          'email': widget.passengerEmail,
-          'phone': widget.passengerPhone,
-        },
+      final success = await paymentProvider.processPayment(
+        bookingId: 'UVE${DateTime.now().millisecondsSinceEpoch}',
+        amount: widget.totalAmount,
+        method: paymentProvider.selectedMethod,
       );
 
-      // Update payment status
-      await bookingProvider.updatePaymentStatus(bookingId, paymentProvider.currentStatus);
-
-      // Reserve seats
-      await seatProvider.reserveSelectedSeats();
-
-      // Navigate to e-ticket
-      if (mounted) {
-        Navigator.pushReplacement(
+      if (success && mounted) {
+        // Create booking with better error handling
+        final bookingProvider = Provider.of<BookingProvider>(
           context,
-          MaterialPageRoute(
-            builder: (context) => ETicketScreen(bookingId: bookingId),
+          listen: false,
+        );
+        final seatProvider = Provider.of<SeatProvider>(context, listen: false);
+
+        try {
+          final bookingId = await bookingProvider.createBooking(
+            routeId: 'SCLRIO5R1ckXKwz2ykxd', // Using Firestore-generated route ID
+            routeName: 'Glan to General Santos',
+            origin: 'Glan',
+            destination: 'General Santos',
+            departureTime: DateTime.now().add(const Duration(hours: 2)),
+            seatIds: widget.selectedSeats.map((seat) => seat.id).toList(),
+            basePrice: widget.totalAmount - widget.discountAmount,
+            discountAmount: widget.discountAmount,
+            totalAmount: widget.totalAmount,
+            paymentMethod: paymentProvider.selectedMethod,
+            paymentStatus:
+                paymentProvider.currentStatus, // Pass the current payment status
+            passengerDetails: {
+              'name': widget.passengerName,
+              'email': widget.passengerEmail,
+              'phone': widget.passengerPhone,
+            },
+          );
+
+          // Reserve seats
+          await seatProvider.reserveSelectedSeats();
+
+          // Small delay to ensure booking is fully saved
+          await Future.delayed(const Duration(milliseconds: 500));
+
+          // Navigate to e-ticket
+          if (mounted) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ETicketScreen(bookingId: bookingId),
+              ),
+            );
+          }
+        } catch (bookingError) {
+          // Handle booking creation errors specifically
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Booking failed: ${bookingError.toString().replaceAll('Exception: ', '')}'),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 5),
+              ),
+            );
+          }
+          
+          // Reset payment status on booking failure
+          paymentProvider.resetPaymentStatus();
+        }
+      } else if (!success) {
+        // Payment failed, show error
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(paymentProvider.errorMessage ?? 'Payment failed'),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 5),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      // Handle any unexpected errors
+      debugPrint('Payment processing error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error processing payment: ${e.toString().replaceAll('Exception: ', '')}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
           ),
         );
       }
+      
+      // Reset payment status on any error
+      paymentProvider.resetPaymentStatus();
     }
   }
 }

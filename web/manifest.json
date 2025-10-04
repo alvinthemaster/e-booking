@@ -1,11 +1,11 @@
 {
-    "name": "uvexpress_eticket",
-    "short_name": "uvexpress_eticket",
+    "name": "Godtrasco booking app",
+    "short_name": "Godtrasco",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "GODTRASCO van seat booking application with e-ticket generation.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

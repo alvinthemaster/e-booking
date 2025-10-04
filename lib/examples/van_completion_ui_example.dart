@@ -240,7 +240,7 @@ class VanManagementIntegrationExample {
 class VanListTileExample extends StatelessWidget {
   final Van van;
 
-  const VanListTileExample({Key? key, required this.van}) : super(key: key);
+  const VanListTileExample({super.key, required this.van});
 
   @override
   Widget build(BuildContext context) {

@@ -41,7 +41,7 @@ class GodtrascoApp extends StatelessWidget {
       child: Consumer<app_auth.AuthProvider>(
         builder: (context, authProvider, _) {
           return MaterialApp(
-            title: 'GODTRASCO E-Ticket',
+            title: 'Godtrasco booking app',
             debugShowCheckedModeBanner: false,
             theme: ThemeData(
               primarySwatch: Colors.blue,

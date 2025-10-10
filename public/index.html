@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GODTRASCO E-Ticket Confirmation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            max-width: 400px;
+            width: 100%;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo h1 {
+            color: #2196F3;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .logo p {
+            color: #666;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        .ticket-info {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .ticket-info h2 {
+            color: #333;
+            font-size: 18px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #555;
+        }
+
+        .info-value {
+            color: #333;
+        }
+
+        .status {
+            text-align: center;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .status.pending {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .status.confirmed {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .auth-section {
+            margin-top: 20px;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #2196F3;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .btn:hover {
+            background: #1976D2;
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #2196F3;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 20px;
+                margin: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <h1>GODTRASCO</h1>
+            <p>E-Ticket Confirmation</p>
+        </div>
+
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Loading ticket information...</p>
+        </div>
+
+        <div id="error-container" style="display: none;">
+            <div class="error-message" id="error-message"></div>
+        </div>
+
+        <div id="ticket-container" style="display: none;">
+            <div class="ticket-info">
+                <h2>Passenger Information</h2>
+                <div class="info-row">
+                    <span class="info-label">Passenger:</span>
+                    <span class="info-value" id="passenger-name">-</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Seat Number:</span>
+                    <span class="info-value" id="seat-number">-</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Route:</span>
+                    <span class="info-value" id="route-info">-</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Van:</span>
+                    <span class="info-value" id="van-info">-</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Date:</span>
+                    <span class="info-value" id="booking-date">-</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Booking ID:</span>
+                    <span class="info-value" id="booking-id">-</span>
+                </div>
+            </div>
+
+            <div class="status" id="status-container">
+                <span id="status-text">Pending Confirmation</span>
+            </div>
+
+            <div id="auth-section" class="auth-section">
+                <div class="input-group">
+                    <label for="conductor-pin">Conductor PIN:</label>
+                    <input type="password" id="conductor-pin" placeholder="Enter conductor PIN" maxlength="6">
+                </div>
+                <button class="btn" id="confirm-btn" onclick="confirmTicket()">
+                    Confirm Boarding
+                </button>
+            </div>
+
+            <div id="success-container" style="display: none;">
+                <div class="success-message">
+                    ✅ Ticket confirmed successfully! Passenger is now onboard.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+    
+    <script>
+        // Firebase configuration - updated to match Flutter project
+        const firebaseConfig = {
+            apiKey: "AIzaSyAhHk9O4DDFKKSl4OKD5HrTPOUr2OdQOSk",
+            authDomain: "e-ticket-2e8d0.firebaseapp.com",
+            projectId: "e-ticket-2e8d0",
+            storageBucket: "e-ticket-2e8d0.firebasestorage.app",
+            messagingSenderId: "1065852861",
+            appId: "1:1065852861:web:7c76ecdb4c61a5f80c7f7e"
+        };
+
+        // Initialize Firebase with better error handling
+        let db;
+        let isFirebaseReady = false;
+        
+        try {
+            console.log('Initializing Firebase...');
+            firebase.initializeApp(firebaseConfig);
+            db = firebase.firestore();
+            isFirebaseReady = true;
+            console.log('Firebase initialized successfully');
+            
+            // Test Firebase connection
+            db.enableNetwork().then(() => {
+                console.log('Firebase Firestore network enabled');
+            }).catch((error) => {
+                console.warn('Firebase network enable failed:', error);
+            });
+            
+        } catch (error) {
+            console.error('Firebase initialization failed:', error);
+            isFirebaseReady = false;
+        }
+
+        // Conductor PIN (in production, this should be more secure)
+        const CONDUCTOR_PIN = '123456';
+
+        let ticketData = null;
+        let ticketId = null;
+
+        // Get ticket ID from URL
+        function getTicketIdFromUrl() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('id');
+        }
+
+        // Load ticket information
+        async function loadTicketInfo() {
+            ticketId = getTicketIdFromUrl();
+            
+            // Check for demo mode
+            const urlParams = new URLSearchParams(window.location.search);
+            const isDemo = urlParams.get('demo') === 'true';
+            const isTest = urlParams.get('test') === 'true';
+            
+            if (isDemo || isTest) {
+                console.log('Demo/Test mode activated');
+                // Show demo ticket data
+                const demoData = {
+                    passengerDetails: { name: 'Juan Dela Cruz' },
+                    userName: 'Juan Dela Cruz',
+                    seatIds: ['A1', 'A2'],
+                    origin: 'General Santos',
+                    destination: 'Glan',
+                    vanPlateNumber: 'ABC-1234',
+                    vanDriverName: 'Pedro Santos',
+                    departureTime: { seconds: Date.now() / 1000 },
+                    eTicketId: 'ET-DEMO123',
+                    bookingStatus: 'confirmed'
+                };
+                ticketData = demoData;
+                displayTicketInfo(demoData);
+                document.getElementById('status-text').textContent = isDemo ? 'Demo Mode - Pending Confirmation' : 'Test Mode - Pending Confirmation';
+                return;
+            }
+            
+            if (!ticketId) {
+                showError('No ticket ID provided. Please scan a valid QR code to access this page.');
+                // Add demo/test information
+                document.getElementById('error-message').innerHTML = `
+                    <strong>No ticket ID provided</strong><br><br>
+                    
+                    <div style="margin: 16px 0;">
+                        <strong>Test Options:</strong><br>
+                        <a href="${window.location.origin}?demo=true" style="color: #2196F3; text-decoration: none; display: block; margin: 8px 0;">
+                            🎯 Demo Mode - Sample ticket data
+                        </a>
+                        <a href="${window.location.origin}?test=true" style="color: #2196F3; text-decoration: none; display: block; margin: 8px 0;">
+                            🧪 Test Mode - Alternative sample data
+                        </a>
+                    </div>
+                    
+                    <div style="margin: 16px 0;">
+                        <strong>Real Usage:</strong><br>
+                        Use with a real booking ID:<br>
+                        <code style="background: #f0f0f0; padding: 4px; border-radius: 4px; font-size: 12px;">
+                            ${window.location.origin}?id=YOUR_BOOKING_ID
+                        </code><br>
+                        Or scan a QR code from the GODTRASCO app.
+                    </div>
+                `;
+                return;
+            }
+
+            try {
+                console.log('Loading ticket with ID:', ticketId);
+                document.getElementById('loading').style.display = 'block';
+                
+                // Check if Firebase is initialized and ready
+                if (!isFirebaseReady || !db) {
+                    throw new Error('Firebase not properly initialized');
+                }
+                
+                console.log('Firebase is ready, attempting to fetch booking...');
+                
+                // Get booking from Firestore (using booking ID)
+                console.log('Fetching booking from Firestore collection: bookings, document:', ticketId);
+                const bookingDoc = await db.collection('bookings').doc(ticketId).get();
+                
+                console.log('Booking document exists:', bookingDoc.exists);
+                console.log('Booking document data:', bookingDoc.data());
+                
+                if (!bookingDoc.exists) {
+                    showError('Booking not found. This QR code may be invalid or expired.');
+                    return;
+                }
+
+                ticketData = bookingDoc.data();
+                console.log('Loaded ticket data:', ticketData);
+                
+                // Check if booking is already confirmed or onboard
+                if (ticketData.bookingStatus === 'confirmed' || ticketData.bookingStatus === 'onboard' || ticketData.bookingStatus === 'completed') {
+                    console.log('Booking already confirmed with status:', ticketData.bookingStatus);
+                    showAlreadyConfirmed();
+                    return;
+                }
+
+                // Display ticket information
+                displayTicketInfo(ticketData);
+                console.log('Ticket information displayed successfully');
+                
+            } catch (error) {
+                console.error('Error loading ticket:', error);
+                console.error('Error details:', {
+                    message: error.message,
+                    code: error.code,
+                    stack: error.stack
+                });
+                
+                let errorMessage = 'Error loading ticket information: ' + error.message;
+                
+                // Provide specific error guidance
+                if (error.message.includes('permission') || error.message.includes('insufficient')) {
+                    errorMessage += '\n\nThis might be a permissions issue. The Firestore rules have been updated and should allow access.';
+                } else if (error.message.includes('not found')) {
+                    errorMessage += '\n\nThe booking ID might be invalid or the booking does not exist.';
+                } else if (error.message.includes('network') || error.message.includes('offline')) {
+                    errorMessage += '\n\nPlease check your internet connection and try again.';
+                }
+                
+                showError(errorMessage);
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        // Display ticket information
+        function displayTicketInfo(data) {
+            document.getElementById('passenger-name').textContent = data.passengerDetails?.name || data.userName || 'N/A';
+            document.getElementById('seat-number').textContent = data.seatIds?.join(', ') || 'N/A';
+            document.getElementById('route-info').textContent = `${data.origin || 'N/A'} → ${data.destination || 'N/A'}`;
+            document.getElementById('van-info').textContent = `${data.vanPlateNumber || 'N/A'} (${data.vanDriverName || 'N/A'})`;
+            document.getElementById('booking-date').textContent = data.departureTime ? new Date(data.departureTime.seconds * 1000).toLocaleDateString() : 'N/A';
+            document.getElementById('booking-id').textContent = data.eTicketId || ticketId;
+            
+            document.getElementById('ticket-container').style.display = 'block';
+        }
+
+        // Show error message
+        function showError(message) {
+            document.getElementById('error-message').textContent = message;
+            document.getElementById('error-container').style.display = 'block';
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        // Show already confirmed status
+        function showAlreadyConfirmed() {
+            displayTicketInfo(ticketData);
+            document.getElementById('status-container').className = 'status confirmed';
+            document.getElementById('status-text').textContent = '✅ Already Confirmed';
+            document.getElementById('auth-section').style.display = 'none';
+        }
+
+        // Confirm ticket
+        async function confirmTicket() {
+            const enteredPin = document.getElementById('conductor-pin').value;
+            
+            if (!enteredPin) {
+                alert('Please enter the conductor PIN');
+                return;
+            }
+
+            if (enteredPin !== CONDUCTOR_PIN) {
+                alert('Invalid PIN. Please contact your supervisor.');
+                return;
+            }
+
+            try {
+                const confirmBtn = document.getElementById('confirm-btn');
+                confirmBtn.disabled = true;
+                confirmBtn.textContent = 'Confirming...';
+
+                // Check if this is demo/test mode
+                const urlParams = new URLSearchParams(window.location.search);
+                const isDemo = urlParams.get('demo') === 'true';
+                const isTest = urlParams.get('test') === 'true';
+
+                if (isDemo || isTest) {
+                    // Simulate confirmation in demo mode
+                    console.log('Demo/Test mode confirmation');
+                    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate delay
+                } else {
+                    // Real Firebase update - Set to 'confirmed' to lock the seat
+                    console.log('Updating booking status for ID:', ticketId);
+                    await db.collection('bookings').doc(ticketId).update({
+                        bookingStatus: 'confirmed', // Changed from 'onboard' to 'confirmed' to lock seat
+                        confirmedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        confirmedBy: 'conductor'
+                    });
+                }
+
+                // Show success
+                document.getElementById('auth-section').style.display = 'none';
+                document.getElementById('success-container').style.display = 'block';
+                document.getElementById('status-container').className = 'status confirmed';
+                document.getElementById('status-text').textContent = '✅ Confirmed';
+
+            } catch (error) {
+                console.error('Error confirming ticket:', error);
+                alert('Error confirming ticket: ' + error.message + '. Please try again.');
+                
+                const confirmBtn = document.getElementById('confirm-btn');
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = 'Confirm Boarding';
+            }
+        }
+
+        // Initialize when page loads
+        window.addEventListener('load', function() {
+            console.log('Page loaded, starting initialization...');
+            
+            // Add debug info
+            const urlParams = new URLSearchParams(window.location.search);
+            const ticketId = urlParams.get('id');
+            const isDemo = urlParams.get('demo') === 'true';
+            
+            console.log('URL params:', { ticketId, isDemo });
+            console.log('Firebase available:', typeof firebase !== 'undefined');
+            
+            // Test Firebase connection if not in demo mode
+            if (!isDemo && !ticketId) {
+                console.log('Testing Firebase connection...');
+                if (isFirebaseReady && db) {
+                    // Test basic Firestore read access
+                    db.collection('routes').limit(1).get()
+                        .then((snapshot) => {
+                            console.log('Firebase test successful, found', snapshot.size, 'route documents');
+                        })
+                        .catch((error) => {
+                            console.error('Firebase test failed:', error);
+                        });
+                }
+            }
+            
+            // Wait a bit for Firebase to fully load
+            setTimeout(loadTicketInfo, 100);
+        });
+
+        // Allow Enter key to confirm
+        document.getElementById('conductor-pin').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                confirmTicket();
+            }
+        });
+    </script>
+</body>
+</html>

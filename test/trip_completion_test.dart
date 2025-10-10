@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:uvexpress_eticket/models/booking_models.dart';
+import 'package:godtrasco_eticket/models/booking_models.dart';
 
 void main() {
   group('Trip Completion Integration Tests', () {
@@ -87,6 +87,7 @@ void main() {
       
       expect(values.contains(BookingStatus.pending), isTrue);
       expect(values.contains(BookingStatus.confirmed), isTrue);
+      expect(values.contains(BookingStatus.onboard), isTrue); // NEW - passenger has boarded
       expect(values.contains(BookingStatus.completed), isTrue);
       expect(values.contains(BookingStatus.cancelled), isTrue);
       expect(values.contains(BookingStatus.cancelledByAdmin), isTrue);

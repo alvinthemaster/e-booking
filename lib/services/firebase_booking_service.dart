@@ -2,12 +2,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import '../models/booking_models.dart';
-import 'web_confirmation_service.dart';
 
 class FirebaseBookingService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final WebConfirmationService _webConfirmationService = WebConfirmationService();
 
   // Collection references
   CollectionReference get _bookingsCollection =>
@@ -57,20 +55,6 @@ class FirebaseBookingService {
 
       await docRef.set(bookingWithId.toMap());
 
-      // Generate web confirmation token and URL
-      try {
-        final confirmationData = await _webConfirmationService.generateConfirmationToken(bookingId);
-        final confirmationUrl = confirmationData['url']!;
-        
-        // Update booking with confirmation URL for QR code
-        await docRef.update({
-          'qrCodeData': confirmationUrl, // Use confirmation URL as QR code data
-        });
-      } catch (e) {
-        debugPrint('Warning: Failed to generate confirmation token: $e');
-        // Continue without confirmation token if it fails
-      }
-
       // Update van occupancy
       if (booking.vanPlateNumber != null && booking.vanDriverName != null) {
         await _updateVanOccupancy(
@@ -98,7 +82,7 @@ class FirebaseBookingService {
   Stream<List<Booking>> getActiveBookingsForVan(String vanId, String routeId) {
     return _bookingsCollection
         .where('routeId', isEqualTo: routeId)
-        .where('bookingStatus', whereIn: ['pending', 'confirmed']) // Only active bookings
+        .where('bookingStatus', whereIn: ['pending', 'confirmed', 'onboard']) // Include onboard status for active bookings
         .snapshots()
         .map((snapshot) => snapshot.docs
             .map((doc) => Booking.fromDocument(doc))
@@ -150,7 +134,7 @@ class FirebaseBookingService {
   bool isSeatAvailable(int seatNumber, List<Booking> activeBookings) {
     return !activeBookings.any((booking) => 
         booking.seatIds.contains(seatNumber.toString()) && 
-        ['pending', 'confirmed'].contains(booking.bookingStatus.name) // Only active bookings
+        ['pending', 'confirmed', 'onboard'].contains(booking.bookingStatus.name) // Include onboard status for seat locking
     );
   }
 
@@ -267,7 +251,7 @@ class FirebaseBookingService {
           .where('routeId', isEqualTo: routeId)
           .where('vanPlateNumber', isEqualTo: vanPlateNumber)
           .where('vanDriverName', isEqualTo: vanDriverName)
-          .where('bookingStatus', whereIn: ['pending', 'confirmed']) // Only active bookings block seats
+          .where('bookingStatus', whereIn: ['pending', 'confirmed', 'onboard']) // Include onboard status for seat locking
           .get();
 
       final bookedSeatIds = <String>[];
@@ -400,7 +384,7 @@ class FirebaseBookingService {
           .where('routeId', isEqualTo: routeId)
           .where('vanPlateNumber', isEqualTo: vanPlateNumber)
           .where('vanDriverName', isEqualTo: vanDriverName)
-          .where('bookingStatus', whereIn: ['pending', 'confirmed']) // Only active bookings
+          .where('bookingStatus', whereIn: ['pending', 'confirmed', 'onboard']) // Include onboard status for seat locking
           .where(
             'paymentStatus',
             whereIn: [PaymentStatus.paid.name, PaymentStatus.pending.name],
@@ -458,7 +442,7 @@ class FirebaseBookingService {
 
   /// Generate QR Code data (placeholder - will be replaced with confirmation URL)
   String _generateQRCode(String bookingId) {
-    return 'https://uvexpress-eticket.web.app/confirm-ticket?token=pending-$bookingId';
+    return 'https://e-ticket-2e8d0.web.app/?id=$bookingId';
   }
 
   /// Initialize sample data (for testing)
@@ -751,7 +735,11 @@ class FirebaseBookingService {
       // Use the correct enum values for booking status
       QuerySnapshot bookingsSnapshot = await _bookingsCollection
           .where('routeId', isEqualTo: van.currentRouteId)
-          .where('bookingStatus', whereIn: [BookingStatus.pending.name, BookingStatus.confirmed.name])
+          .where('bookingStatus', whereIn: [
+            BookingStatus.pending.name, 
+            BookingStatus.confirmed.name,
+            BookingStatus.onboard.name, // Include onboard passengers in trip completion
+          ])
           .get();
 
       WriteBatch batch = _firestore.batch();

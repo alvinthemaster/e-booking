@@ -6,12 +6,12 @@
 // tree, read text, and verify that the values of widget properties are correct.
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:uvexpress_eticket/main.dart';
+import 'package:godtrasco_eticket/main.dart';
 
 void main() {
   testWidgets('UVexpress app smoke test', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const UVExpressApp());
+    await tester.pumpWidget(const GodtrascoApp());
 
     // Wait for the app to settle
     await tester.pumpAndSettle();

@@ -7,7 +7,7 @@ class WebConfirmationService {
   final Uuid _uuid = const Uuid();
   
   // Base URL for your web confirmation (you can change this to your domain)
-  static const String baseUrl = ' https://alvinthemaster.github.io/e-booking/web';
+  static const String baseUrl = 'https://alvinthemaster.github.io/e-booking/web';
   
   // Conductor PIN for confirmation (in production, store this securely)
   static const String conductorPin = '2024';

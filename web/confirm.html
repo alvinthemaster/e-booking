@@ -355,7 +355,7 @@
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js';
         import { getFirestore, doc, getDoc, updateDoc, Timestamp, collection, query, where, getDocs } from 'https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js';
 
-        // Firebase configuration - You need to replace this with your actual config
+        // 🔥 REPLACE WITH YOUR ACTUAL FIREBASE CONFIG
         const firebaseConfig = {
             apiKey: "AIzaSyCt5Q5vRpvfyRqnAUK_R8PrlOHd3KP9hcM",
             authDomain: "uvexpress-eticket.firebaseapp.com",
@@ -369,7 +369,7 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // Conductor PIN (in production, this should be more secure)
+        // UVexpress Conductor PIN (Change this for production!)
         const CONDUCTOR_PIN = '2024';
 
         // Get token from URL

@@ -49,7 +49,15 @@ enum BookingStatus {
   confirmed, 
   completed, 
   cancelled,
-  cancelledByAdmin // NEW - for admin cancellations
+  cancelledByAdmin, // NEW - for admin cancellations
+  onboard // NEW - for web confirmation boarding
+}
+
+enum ConfirmationStatus {
+  pending,
+  confirmed,
+  expired,
+  invalid
 }
 
 class Booking {
@@ -77,6 +85,14 @@ class Booking {
   final String? vanPlateNumber;
   final String? vanDriverName;
   final String? vanDriverContact;
+  // Web confirmation fields
+  final String? confirmationToken;
+  final DateTime? tokenExpiresAt;
+  final ConfirmationStatus? confirmationStatus;
+  final String? confirmedBy;
+  final DateTime? confirmedAt;
+  final String? confirmationUrl;
+  // Existing fields
   final DateTime? cancelledAt;
   final String? cancellationReason;
   final String? cancelledBy;
@@ -109,6 +125,14 @@ class Booking {
     this.vanPlateNumber,
     this.vanDriverName,
     this.vanDriverContact,
+    // Web confirmation fields
+    this.confirmationToken,
+    this.tokenExpiresAt,
+    this.confirmationStatus,
+    this.confirmedBy,
+    this.confirmedAt,
+    this.confirmationUrl,
+    // Existing fields
     this.cancelledAt,
     this.cancellationReason,
     this.cancelledBy,
@@ -144,6 +168,14 @@ class Booking {
       'vanPlateNumber': vanPlateNumber,
       'vanDriverName': vanDriverName,
       'vanDriverContact': vanDriverContact,
+      // Web confirmation fields
+      'confirmationToken': confirmationToken,
+      'tokenExpiresAt': tokenExpiresAt != null ? Timestamp.fromDate(tokenExpiresAt!) : null,
+      'confirmationStatus': confirmationStatus?.name,
+      'confirmedBy': confirmedBy,
+      'confirmedAt': confirmedAt != null ? Timestamp.fromDate(confirmedAt!) : null,
+      'confirmationUrl': confirmationUrl,
+      // Existing fields
       'cancelledAt': cancelledAt != null ? Timestamp.fromDate(cancelledAt!) : null,
       'cancellationReason': cancellationReason,
       'cancelledBy': cancelledBy,
@@ -186,6 +218,23 @@ class Booking {
       vanPlateNumber: map['vanPlateNumber'],
       vanDriverName: map['vanDriverName'],
       vanDriverContact: map['vanDriverContact'],
+      // Web confirmation fields
+      confirmationToken: map['confirmationToken'],
+      tokenExpiresAt: map['tokenExpiresAt'] != null 
+          ? (map['tokenExpiresAt'] as Timestamp).toDate() 
+          : null,
+      confirmationStatus: map['confirmationStatus'] != null
+          ? ConfirmationStatus.values.firstWhere(
+              (e) => e.name == map['confirmationStatus'],
+              orElse: () => ConfirmationStatus.pending,
+            )
+          : null,
+      confirmedBy: map['confirmedBy'],
+      confirmedAt: map['confirmedAt'] != null 
+          ? (map['confirmedAt'] as Timestamp).toDate() 
+          : null,
+      confirmationUrl: map['confirmationUrl'],
+      // Existing fields
       cancelledAt: map['cancelledAt'] != null 
           ? (map['cancelledAt'] as Timestamp).toDate() 
           : null,

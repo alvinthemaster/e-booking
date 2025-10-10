@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UVexpress E-Ticket Confirmation</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 480px;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2196F3, #1976D2);
+            color: white;
+            padding: 24px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .content {
+            padding: 24px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #2196F3;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #fff5f5;
+            border: 1px solid #fed7d7;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .error h3 {
+            color: #c53030;
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+
+        .error p {
+            color: #744210;
+            font-size: 14px;
+        }
+
+        .ticket-info {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+
+        .info-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .info-label {
+            color: #6b7280;
+            font-weight: 500;
+        }
+
+        .info-value {
+            color: #111827;
+            font-weight: 600;
+            text-align: right;
+            max-width: 60%;
+            word-break: break-word;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-confirmed {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-paid {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .pin-section {
+            margin-top: 24px;
+        }
+
+        .pin-label {
+            font-size: 16px;
+            font-weight: 600;
+            color: #111827;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .pin-input {
+            width: 100%;
+            padding: 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 18px;
+            text-align: center;
+            letter-spacing: 4px;
+            font-weight: 600;
+            transition: border-color 0.2s;
+        }
+
+        .pin-input:focus {
+            outline: none;
+            border-color: #2196F3;
+            box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+        }
+
+        .confirm-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #4CAF50, #388E3C);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 16px;
+            font-size: 16px;
+            font-weight: 600;
+            margin-top: 16px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .confirm-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(76, 175, 80, 0.3);
+        }
+
+        .confirm-btn:active {
+            transform: translateY(0);
+        }
+
+        .confirm-btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .success {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .success-icon {
+            width: 64px;
+            height: 64px;
+            background: #4CAF50;
+            border-radius: 50%;
+            margin: 0 auto 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 32px;
+        }
+
+        .success h3 {
+            color: #065f46;
+            font-size: 20px;
+            margin-bottom: 8px;
+        }
+
+        .success p {
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                margin: 10px;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .info-row {
+                flex-direction: column;
+                margin-bottom: 8px;
+            }
+            
+            .info-value {
+                text-align: left;
+                max-width: 100%;
+                margin-top: 4px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎫 E-Ticket Confirmation</h1>
+            <p>UVexpress Van Service</p>
+        </div>
+        
+        <div class="content">
+            <div id="loading-section" class="loading">
+                <div class="spinner"></div>
+                <p>Loading ticket information...</p>
+            </div>
+
+            <div id="error-section" style="display: none;">
+                <div class="error">
+                    <h3 id="error-title">Invalid Token</h3>
+                    <p id="error-message">This confirmation link is invalid or has expired.</p>
+                </div>
+            </div>
+
+            <div id="ticket-section" style="display: none;">
+                <div class="ticket-info">
+                    <div class="info-row">
+                        <span class="info-label">Passenger</span>
+                        <span class="info-value" id="passenger-name">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Route</span>
+                        <span class="info-value" id="route">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Departure</span>
+                        <span class="info-value" id="departure-time">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Seat(s)</span>
+                        <span class="info-value" id="seat-numbers">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Total Amount</span>
+                        <span class="info-value" id="total-amount">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Payment Status</span>
+                        <span class="info-value">
+                            <span class="status-badge" id="payment-status">-</span>
+                        </span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Booking Status</span>
+                        <span class="info-value">
+                            <span class="status-badge" id="booking-status">-</span>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="pin-section">
+                    <label for="conductor-pin" class="pin-label">
+                        🔐 Conductor PIN Required
+                    </label>
+                    <input 
+                        type="password" 
+                        id="conductor-pin" 
+                        class="pin-input"
+                        placeholder="Enter 4-digit PIN"
+                        maxlength="4"
+                        pattern="[0-9]{4}"
+                    >
+                    <button id="confirm-boarding" class="confirm-btn">
+                        ✅ Confirm Boarding
+                    </button>
+                </div>
+            </div>
+
+            <div id="success-section" style="display: none;">
+                <div class="success">
+                    <div class="success-icon">✓</div>
+                    <h3>Boarding Confirmed!</h3>
+                    <p>Passenger has been successfully boarded.</p>
+                    <p id="confirmed-time"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Firebase configuration - replace with your config
+        const firebaseConfig = {
+            // Your Firebase config here
+            apiKey: "your-api-key",
+            authDomain: "your-project.firebaseapp.com",
+            projectId: "your-project-id",
+            storageBucket: "your-project.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "your-app-id"
+        };
+
+        // Get token from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
+
+        // DOM elements
+        const loadingSection = document.getElementById('loading-section');
+        const errorSection = document.getElementById('error-section');
+        const ticketSection = document.getElementById('ticket-section');
+        const successSection = document.getElementById('success-section');
+        const confirmBtn = document.getElementById('confirm-boarding');
+        const pinInput = document.getElementById('conductor-pin');
+
+        // Check if token exists
+        if (!token) {
+            showError('Invalid Link', 'No confirmation token found in the URL.');
+        } else {
+            // Load ticket information
+            loadTicketInfo(token);
+        }
+
+        // Load ticket information
+        async function loadTicketInfo(token) {
+            try {
+                const response = await fetch(`/api/get-booking?token=${token}`);
+                const data = await response.json();
+
+                if (!data.isValid) {
+                    showError(getErrorTitle(data.errorType), data.error);
+                    return;
+                }
+
+                // Display ticket information
+                displayTicketInfo(data.booking);
+                
+                // Show ticket section
+                loadingSection.style.display = 'none';
+                ticketSection.style.display = 'block';
+
+            } catch (error) {
+                showError('Connection Error', 'Failed to load ticket information. Please try again.');
+            }
+        }
+
+        // Display ticket information
+        function displayTicketInfo(booking) {
+            document.getElementById('passenger-name').textContent = booking.passengerName;
+            document.getElementById('route').textContent = booking.route;
+            document.getElementById('departure-time').textContent = formatDateTime(booking.departureTime);
+            document.getElementById('seat-numbers').textContent = booking.seatNumbers;
+            document.getElementById('total-amount').textContent = `₱${booking.totalAmount.toFixed(2)}`;
+            
+            const paymentStatus = document.getElementById('payment-status');
+            paymentStatus.textContent = booking.paymentStatus;
+            paymentStatus.className = `status-badge status-${booking.paymentStatus}`;
+            
+            const bookingStatus = document.getElementById('booking-status');
+            bookingStatus.textContent = booking.bookingStatus;
+            bookingStatus.className = `status-badge status-${booking.bookingStatus}`;
+        }
+
+        // Confirm boarding
+        confirmBtn.addEventListener('click', async () => {
+            const pin = pinInput.value.trim();
+            
+            if (!pin || pin.length !== 4) {
+                alert('Please enter a 4-digit PIN');
+                return;
+            }
+
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = '🔄 Confirming...';
+
+            try {
+                const response = await fetch('/api/confirm-boarding', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        token: token,
+                        pin: pin
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Show success
+                    ticketSection.style.display = 'none';
+                    successSection.style.display = 'block';
+                    document.getElementById('confirmed-time').textContent = 
+                        `Confirmed at ${formatDateTime(data.confirmedAt)}`;
+                } else {
+                    alert(data.error || 'Confirmation failed');
+                    confirmBtn.disabled = false;
+                    confirmBtn.textContent = '✅ Confirm Boarding';
+                }
+
+            } catch (error) {
+                alert('Network error. Please try again.');
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = '✅ Confirm Boarding';
+            }
+        });
+
+        // PIN input validation
+        pinInput.addEventListener('input', (e) => {
+            e.target.value = e.target.value.replace(/[^0-9]/g, '');
+        });
+
+        // Show error
+        function showError(title, message) {
+            document.getElementById('error-title').textContent = title;
+            document.getElementById('error-message').textContent = message;
+            
+            loadingSection.style.display = 'none';
+            errorSection.style.display = 'block';
+        }
+
+        // Get error title
+        function getErrorTitle(errorType) {
+            switch (errorType) {
+                case 'invalid_token': return 'Invalid Token';
+                case 'expired_token': return 'Expired Token';
+                case 'token_used': return 'Already Confirmed';
+                case 'booking_not_found': return 'Booking Not Found';
+                default: return 'Error';
+            }
+        }
+
+        // Format date time
+        function formatDateTime(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+            });
+        }
+    </script>
+</body>
+</html>

@@ -2,10 +2,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import '../models/booking_models.dart';
+import 'web_confirmation_service.dart';
 
 class FirebaseBookingService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final WebConfirmationService _webConfirmationService = WebConfirmationService();
 
   // Collection references
   CollectionReference get _bookingsCollection =>
@@ -13,7 +15,6 @@ class FirebaseBookingService {
   CollectionReference get _routesCollection => _firestore.collection('routes');
   CollectionReference get _schedulesCollection =>
       _firestore.collection('schedules');
-  CollectionReference get _usersCollection => _firestore.collection('users');
   CollectionReference get _vansCollection => _firestore.collection('vans');
 
   /// Create a new booking
@@ -55,6 +56,20 @@ class FirebaseBookingService {
       );
 
       await docRef.set(bookingWithId.toMap());
+
+      // Generate web confirmation token and URL
+      try {
+        final confirmationData = await _webConfirmationService.generateConfirmationToken(bookingId);
+        final confirmationUrl = confirmationData['url']!;
+        
+        // Update booking with confirmation URL for QR code
+        await docRef.update({
+          'qrCodeData': confirmationUrl, // Use confirmation URL as QR code data
+        });
+      } catch (e) {
+        debugPrint('Warning: Failed to generate confirmation token: $e');
+        // Continue without confirmation token if it fails
+      }
 
       // Update van occupancy
       if (booking.vanPlateNumber != null && booking.vanDriverName != null) {
@@ -441,9 +456,9 @@ class FirebaseBookingService {
     }
   }
 
-  /// Generate QR Code data
+  /// Generate QR Code data (placeholder - will be replaced with confirmation URL)
   String _generateQRCode(String bookingId) {
-    return 'GODTRASCO-$bookingId-${DateTime.now().millisecondsSinceEpoch}';
+    return 'https://uvexpress-eticket.web.app/confirm-ticket?token=pending-$bookingId';
   }
 
   /// Initialize sample data (for testing)

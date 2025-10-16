@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/booking_models.dart';
 import '../services/firebase_booking_service.dart';
+import '../utils/currency_formatter.dart';
 
 class UserBookingListener extends StatefulWidget {
   final Widget child;
@@ -98,7 +99,7 @@ class _UserBookingListenerState extends State<UserBookingListener> {
                     const SizedBox(height: 4),
                     Text('Route: ${booking.routeName}'),
                     Text('Seats: ${booking.seatIds.join(', ')}'),
-                    Text('Amount: ₱${booking.totalAmount.toStringAsFixed(2)}'),
+                    Text('Amount: ${CurrencyFormatter.formatPesoWithDecimals(booking.totalAmount)}'),
                   ],
                 ),
               ),

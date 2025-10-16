@@ -4,6 +4,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:intl/intl.dart';
 import '../providers/booking_provider.dart';
 import '../models/booking_models.dart';
+import '../utils/currency_formatter.dart';
 
 class ETicketScreen extends StatelessWidget {
   final String bookingId;
@@ -315,7 +316,7 @@ class ETicketScreen extends StatelessWidget {
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        'Total: ₱${booking.totalAmount.toStringAsFixed(2)}',
+                                        'Total: ${CurrencyFormatter.formatPesoWithDecimals(booking.totalAmount)}',
                                         style: const TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.w500,
@@ -323,7 +324,7 @@ class ETicketScreen extends StatelessWidget {
                                       ),
                                       if (booking.discountAmount > 0)
                                         Text(
-                                          'Discount: -₱${booking.discountAmount.toStringAsFixed(2)}',
+                                          'Discount: ${CurrencyFormatter.formatDiscount(booking.discountAmount)}',
                                           style: const TextStyle(
                                             fontSize: 14,
                                             color: Color(0xFF4CAF50),

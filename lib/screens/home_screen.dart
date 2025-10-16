@@ -4,6 +4,7 @@ import 'seat_selection_screen.dart';
 import 'booking_history_screen.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../providers/booking_provider.dart';
+import '../utils/currency_formatter.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -386,7 +387,7 @@ class _HomeTabState extends State<HomeTab> {
                                         ),
                                         const SizedBox(width: 8),
                                         Text(
-                                          '₱${route.basePrice.toStringAsFixed(0)}',
+                                          CurrencyFormatter.formatPeso(route.basePrice),
                                           style: const TextStyle(
                                             fontSize: 16,
                                             fontWeight: FontWeight.bold,

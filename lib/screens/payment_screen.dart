@@ -5,6 +5,7 @@ import '../models/booking_models.dart';
 import '../providers/payment_provider.dart';
 import '../providers/booking_provider.dart';
 import '../providers/seat_provider.dart';
+import '../services/email_service.dart';
 import 'eticket_screen.dart';
 
 class PaymentScreen extends StatefulWidget {
@@ -509,6 +510,47 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
           // Small delay to ensure booking is fully saved
           await Future.delayed(const Duration(milliseconds: 500));
+
+          // Get the created booking to access QR code data
+          final createdBooking = await bookingProvider.getBookingById(bookingId);
+          
+          // Send e-ticket email (don't block navigation if email fails)
+          if (createdBooking != null && createdBooking.qrCodeData != null) {
+            EmailService.sendETicketEmail(
+              booking: createdBooking,
+              qrCodeData: createdBooking.qrCodeData!,
+            ).then((emailSent) {
+              if (mounted) {
+                if (emailSent) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('✅ E-ticket sent to your email!'),
+                      backgroundColor: Colors.green,
+                      duration: Duration(seconds: 3),
+                    ),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('⚠️ E-ticket created but email delivery failed. You can still view your ticket.'),
+                      backgroundColor: Colors.orange,
+                      duration: Duration(seconds: 4),
+                    ),
+                  );
+                }
+              }
+            }).catchError((error) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('⚠️ E-ticket created but email delivery failed. You can still view your ticket.'),
+                    backgroundColor: Colors.orange,
+                    duration: Duration(seconds: 4),
+                  ),
+                );
+              }
+            });
+          }
 
           // Navigate to e-ticket
           if (mounted) {

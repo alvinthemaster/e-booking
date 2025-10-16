@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/booking_models.dart';
 import 'payment_screen.dart';
+import '../utils/currency_formatter.dart';
 
 class BookingFormScreen extends StatefulWidget {
   final List<Seat> selectedSeats;
@@ -137,20 +138,20 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
                           // Fare Breakdown
                           _buildSummaryRow(
                             'Regular Seats:',
-                            '${widget.selectedSeats.where((s) => !s.hasDiscount).length} × ₱150',
+                            '${widget.selectedSeats.where((s) => !s.hasDiscount).length} × ${CurrencyFormatter.formatPeso(150)}',
                           ),
 
                           if (widget.selectedSeats.any((s) => s.hasDiscount))
                             _buildSummaryRow(
                               'Discounted Seats:',
-                              '${widget.selectedSeats.where((s) => s.hasDiscount).length} × ₱130',
+                              '${widget.selectedSeats.where((s) => s.hasDiscount).length} × ${CurrencyFormatter.formatPeso(130)}',
                             ),
 
                           if (widget.discountAmount > 0) ...[
                             const Divider(height: 20),
                             _buildSummaryRow(
                               'Discount Amount:',
-                              '-₱${widget.discountAmount.toStringAsFixed(2)}',
+                              CurrencyFormatter.formatDiscount(widget.discountAmount),
                               color: const Color(0xFF4CAF50),
                             ),
                           ],
@@ -158,7 +159,7 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
                           const Divider(height: 20),
                           _buildSummaryRow(
                             'Total Amount:',
-                            '₱${widget.totalAmount.toStringAsFixed(2)}',
+                            CurrencyFormatter.formatPesoWithDecimals(widget.totalAmount),
                             isTotal: true,
                           ),
                         ],

@@ -42,6 +42,7 @@ dependencies:
   
   # QR Code generation
   qr_flutter: ^4.1.0
+  qr: ^3.0.1
   
   # Payment gateway
   url_launcher: ^6.2.6

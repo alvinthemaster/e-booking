@@ -148,6 +148,14 @@ class SeatProvider with ChangeNotifier {
     return total;
   }
 
+  // Booking fee is a flat ₱2.00 per booking (not per seat)
+  double get bookingFee => _selectedSeats.isNotEmpty ? 2.0 : 0.0;
+
+  // Total amount including booking fee
+  double calculateTotalAmountWithFee() {
+    return calculateTotalAmount() + bookingFee;
+  }
+
   double calculateDiscountAmount() {
     double discount = 0;
     for (final seat in _selectedSeats) {

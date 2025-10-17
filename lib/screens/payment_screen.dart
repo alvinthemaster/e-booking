@@ -112,6 +112,48 @@ class _PaymentScreenState extends State<PaymentScreen> {
                             _buildSummaryRow('Email:', widget.passengerEmail),
                             const Divider(height: 20),
                             _buildSummaryRowWithPeso(
+                              'Fare Subtotal:',
+                              (widget.totalAmount - 2.0).toStringAsFixed(2),
+                            ),
+                            if (widget.discountAmount > 0)
+                              Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 4.0),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    const Text(
+                                      'Discount Applied:',
+                                      style: TextStyle(fontSize: 14),
+                                    ),
+                                    Row(
+                                      children: [
+                                        const Text(
+                                          '-₱',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.green,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                        Text(
+                                          widget.discountAmount.toStringAsFixed(2),
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.green,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            _buildSummaryRowWithPeso(
+                              'Booking Fee:',
+                              '2.00',
+                            ),
+                            const Divider(height: 20),
+                            _buildSummaryRowWithPeso(
                               'Total Amount:',
                               widget.totalAmount.toStringAsFixed(2),
                               isTotal: true,
@@ -492,7 +534,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
             destination: 'General Santos',
             departureTime: DateTime.now().add(const Duration(hours: 2)),
             seatIds: widget.selectedSeats.map((seat) => seat.id).toList(),
-            basePrice: widget.totalAmount - widget.discountAmount,
+            basePrice: widget.totalAmount - widget.discountAmount - 2.0, // Subtract discount and booking fee from total
             discountAmount: widget.discountAmount,
             totalAmount: widget.totalAmount,
             paymentMethod: paymentProvider.selectedMethod,

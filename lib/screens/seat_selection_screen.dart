@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../providers/seat_provider.dart';
 import '../models/booking_models.dart';
+import '../widgets/terms_conditions_modal.dart';
 import 'booking_form_screen.dart';
 
 class SeatSelectionScreen extends StatefulWidget {
@@ -411,11 +412,20 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                           ),
                         const Divider(),
                         _buildSummaryRowWithPeso(
+                          'Subtotal:',
+                          '',
+                          seatProvider.calculateTotalAmount().toStringAsFixed(2),
+                        ),
+                        _buildSummaryRowWithPeso(
+                          'Booking Fee:',
+                          '',
+                          seatProvider.bookingFee.toStringAsFixed(2),
+                        ),
+                        const Divider(),
+                        _buildSummaryRowWithPeso(
                           'Total Amount:',
                           '',
-                          seatProvider.calculateTotalAmount().toStringAsFixed(
-                            2,
-                          ),
+                          seatProvider.calculateTotalAmountWithFee().toStringAsFixed(2),
                           isTotal: true,
                         ),
                       ],
@@ -426,16 +436,26 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                         height: 48,
                         child: ElevatedButton(
                           onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => BookingFormScreen(
-                                  selectedSeats: seatProvider.selectedSeats,
-                                  totalAmount: seatProvider
-                                      .calculateTotalAmount(),
-                                  discountAmount: seatProvider
-                                      .calculateDiscountAmount(),
-                                ),
+                            // Show Terms & Conditions modal first
+                            showDialog(
+                              context: context,
+                              barrierDismissible: false,
+                              builder: (context) => TermsConditionsModal(
+                                onAccept: () {
+                                  // After accepting terms, proceed to booking
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => BookingFormScreen(
+                                        selectedSeats: seatProvider.selectedSeats,
+                                        totalAmount: seatProvider
+                                            .calculateTotalAmountWithFee(),
+                                        discountAmount: seatProvider
+                                            .calculateDiscountAmount(),
+                                      ),
+                                    ),
+                                  );
+                                },
                               ),
                             );
                           },

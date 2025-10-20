@@ -113,7 +113,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                             const Divider(height: 20),
                             _buildSummaryRowWithPeso(
                               'Fare Subtotal:',
-                              (widget.totalAmount - 2.0).toStringAsFixed(2),
+                              (widget.totalAmount - 15.0).toStringAsFixed(2),
                             ),
                             if (widget.discountAmount > 0)
                               Padding(
@@ -150,7 +150,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                               ),
                             _buildSummaryRowWithPeso(
                               'Booking Fee:',
-                              '2.00',
+                              '15.00',
                             ),
                             const Divider(height: 20),
                             _buildSummaryRowWithPeso(
@@ -534,7 +534,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
             destination: 'General Santos',
             departureTime: DateTime.now().add(const Duration(hours: 2)),
             seatIds: widget.selectedSeats.map((seat) => seat.id).toList(),
-            basePrice: widget.totalAmount - widget.discountAmount - 2.0, // Subtract discount and booking fee from total
+            basePrice: widget.totalAmount - widget.discountAmount - 15.0, // Subtract discount and booking fee from total
             discountAmount: widget.discountAmount,
             totalAmount: widget.totalAmount,
             paymentMethod: paymentProvider.selectedMethod,

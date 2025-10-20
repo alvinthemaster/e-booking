@@ -137,7 +137,7 @@ class _TermsConditionsModalState extends State<TermsConditionsModal> {
 
                     _buildSection(
                       '7. Payment',
-                      'A ₱2.00 booking fee is added to your fare. All payments must be completed before the booking is confirmed. We accept GCash and cash payments.',
+                      'A ₱15.00 booking fee is added to your fare. All payments must be completed before the booking is confirmed. We accept GCash and cash payments.',
                     ),
                     const SizedBox(height: 20),
 

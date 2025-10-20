@@ -50,7 +50,8 @@ enum BookingStatus {
   onboard,    // NEW - passenger has boarded the van
   completed, 
   cancelled,
-  cancelledByAdmin // NEW - for admin cancellations
+  cancelledByAdmin, // NEW - for admin cancellations
+  failed      // NEW - for failed bookings (e.g., payment timeout, system error)
 }
 
 class Booking {
@@ -422,6 +423,8 @@ class Van {
     switch (status.toLowerCase().trim()) {
       case 'boarding':
         return 'Boarding';
+      case 'full':
+        return 'Full';
       case 'in_queue':
         return 'In Queue';
       case 'maintenance':
@@ -439,6 +442,8 @@ class Van {
     switch (status.toLowerCase().trim()) {
       case 'boarding':
         return const Color(0xFF4CAF50); // Green - actively boarding passengers
+      case 'full':
+        return const Color(0xFFF44336); // Red - van is full
       case 'in_queue':
         return const Color(0xFFFF9800); // Orange
       case 'maintenance':

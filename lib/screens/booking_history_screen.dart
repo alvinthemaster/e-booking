@@ -216,61 +216,108 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        booking.id,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF2196F3),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        DateFormat(
-                          'MMM dd, yyyy • hh:mm a',
-                        ).format(booking.bookingDate),
-                        style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                      ),
-                    ],
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _getStatusColor(
-                        booking.paymentStatus,
-                      ).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: _getStatusColor(
-                          booking.paymentStatus,
-                        ).withOpacity(0.3),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(
-                          _getStatusIcon(booking.paymentStatus),
-                          size: 16,
-                          color: _getStatusColor(booking.paymentStatus),
-                        ),
-                        const SizedBox(width: 4),
                         Text(
-                          _getStatusText(booking.paymentStatus),
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: _getStatusColor(booking.paymentStatus),
+                          booking.id,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF2196F3),
                           ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          DateFormat(
+                            'MMM dd, yyyy • hh:mm a',
+                          ).format(booking.bookingDate),
+                          style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                         ),
                       ],
                     ),
+                  ),
+                  const SizedBox(width: 8),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      // Payment Status
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _getPaymentStatusColor(
+                            booking.paymentStatus,
+                          ).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: _getPaymentStatusColor(
+                              booking.paymentStatus,
+                            ).withOpacity(0.3),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              _getPaymentStatusIcon(booking.paymentStatus),
+                              size: 14,
+                              color: _getPaymentStatusColor(booking.paymentStatus),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              _getPaymentStatusText(booking.paymentStatus),
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: _getPaymentStatusColor(booking.paymentStatus),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      // Booking Status
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _getBookingStatusColor(
+                            booking.bookingStatus,
+                          ).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: _getBookingStatusColor(
+                              booking.bookingStatus,
+                            ).withOpacity(0.3),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              _getBookingStatusIcon(booking.bookingStatus),
+                              size: 14,
+                              color: _getBookingStatusColor(booking.bookingStatus),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              _getBookingStatusText(booking.bookingStatus),
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: _getBookingStatusColor(booking.bookingStatus),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -547,7 +594,7 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
                       child: OutlinedButton.icon(
                         onPressed: null,
                         icon: const Icon(Icons.schedule, size: 18),
-                        label: Text(_getStatusText(booking.paymentStatus)),
+                        label: Text(_getPaymentStatusText(booking.paymentStatus)),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.grey,
                           side: const BorderSide(color: Colors.grey),
@@ -567,20 +614,21 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
     );
   }
 
-  Color _getStatusColor(PaymentStatus status) {
+  // Payment Status Methods
+  Color _getPaymentStatusColor(PaymentStatus status) {
     switch (status) {
       case PaymentStatus.paid:
-        return const Color(0xFF4CAF50);
+        return const Color(0xFF4CAF50); // Green
       case PaymentStatus.pending:
-        return const Color(0xFFFF9800);
+        return const Color(0xFFFF9800); // Orange
       case PaymentStatus.failed:
-        return const Color(0xFFF44336);
+        return const Color(0xFFF44336); // Red
       case PaymentStatus.refunded:
-        return const Color(0xFF2196F3);
+        return const Color(0xFF9C27B0); // Purple
     }
   }
 
-  IconData _getStatusIcon(PaymentStatus status) {
+  IconData _getPaymentStatusIcon(PaymentStatus status) {
     switch (status) {
       case PaymentStatus.paid:
         return Icons.check_circle;
@@ -593,16 +641,74 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
     }
   }
 
-  String _getStatusText(PaymentStatus status) {
+  String _getPaymentStatusText(PaymentStatus status) {
     switch (status) {
       case PaymentStatus.paid:
-        return 'Completed';
+        return 'Paid';
       case PaymentStatus.pending:
-        return 'Pending';
+        return 'Pending Payment';
       case PaymentStatus.failed:
         return 'Failed';
       case PaymentStatus.refunded:
         return 'Refunded';
+    }
+  }
+
+  // Booking Status Methods
+  Color _getBookingStatusColor(BookingStatus status) {
+    switch (status) {
+      case BookingStatus.pending:
+        return const Color(0xFFFF9800); // Orange
+      case BookingStatus.confirmed:
+        return const Color(0xFF2196F3); // Blue
+      case BookingStatus.onboard:
+        return const Color(0xFF00BCD4); // Cyan
+      case BookingStatus.completed:
+        return const Color(0xFF4CAF50); // Green
+      case BookingStatus.cancelled:
+        return const Color(0xFF757575); // Gray
+      case BookingStatus.cancelledByAdmin:
+        return const Color(0xFFF44336); // Red
+      case BookingStatus.failed:
+        return const Color(0xFFE91E63); // Pink/Magenta
+    }
+  }
+
+  IconData _getBookingStatusIcon(BookingStatus status) {
+    switch (status) {
+      case BookingStatus.pending:
+        return Icons.hourglass_empty;
+      case BookingStatus.confirmed:
+        return Icons.verified;
+      case BookingStatus.onboard:
+        return Icons.directions_bus;
+      case BookingStatus.completed:
+        return Icons.check_circle_outline;
+      case BookingStatus.cancelled:
+        return Icons.cancel;
+      case BookingStatus.cancelledByAdmin:
+        return Icons.block;
+      case BookingStatus.failed:
+        return Icons.error_outline;
+    }
+  }
+
+  String _getBookingStatusText(BookingStatus status) {
+    switch (status) {
+      case BookingStatus.pending:
+        return 'Pending';
+      case BookingStatus.confirmed:
+        return 'Confirmed';
+      case BookingStatus.onboard:
+        return 'On Board';
+      case BookingStatus.completed:
+        return 'Completed';
+      case BookingStatus.cancelled:
+        return 'Cancelled';
+      case BookingStatus.cancelledByAdmin:
+        return 'Cancelled by Admin';
+      case BookingStatus.failed:
+        return 'Failed';
     }
   }
 

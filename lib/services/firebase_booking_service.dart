@@ -2,10 +2,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import '../models/booking_models.dart';
+import 'van_full_notification_service.dart';
 
 class FirebaseBookingService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final VanFullNotificationService _notificationService =
+      VanFullNotificationService();
 
   // Collection references
   CollectionReference get _bookingsCollection =>
@@ -362,6 +365,14 @@ class FirebaseBookingService {
         debugPrint(
           '✅ Updated van $plateNumber occupancy: ${van.currentOccupancy} → $clampedOccupancy',
         );
+
+        // Check if van just became full and trigger notification
+        if (isBooking && clampedOccupancy >= van.capacity) {
+          debugPrint(
+            '🚨 Van $plateNumber is now FULL! Triggering departure notification...',
+          );
+          await _notificationService.checkAndNotifyIfVanFull(vanDoc.id);
+        }
       } else {
         debugPrint(
           '⚠️ Van not found for occupancy update: $plateNumber ($driverName)',
@@ -675,6 +686,13 @@ class FirebaseBookingService {
     try {
       await _vansCollection.doc(vanId).update({'status': status});
       debugPrint('✅ Updated van $vanId status to: $status');
+      
+      // Trigger notification check when status changes to full or boarding
+      final statusLower = status.toLowerCase().trim();
+      if (statusLower == 'full' || statusLower == 'boarding') {
+        debugPrint('🔔 Van status changed to "$status" - checking for notifications...');
+        await _notificationService.checkAndNotifyIfVanFull(vanId);
+      }
     } catch (e) {
       debugPrint('❌ Error updating van status: $e');
       throw Exception('Failed to update van status: $e');

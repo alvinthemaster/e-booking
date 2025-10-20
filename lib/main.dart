@@ -11,6 +11,17 @@ import 'screens/auth/sign_in_screen.dart';
 import 'widgets/user_booking_listener.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+import 'services/notification_service.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+
+// Background message handler (must be top-level function)
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  debugPrint(
+    'NotificationService: Handling background message: ${message.messageId}',
+  );
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,6 +33,12 @@ void main() async {
   print(
     'Firebase apps initialized: ${Firebase.apps.map((app) => app.name).toList()}',
   );
+
+  // Initialize Firebase Messaging background handler
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+  // Initialize notification service
+  await NotificationService().initialize();
 
   runApp(const GodtrascoApp());
 }

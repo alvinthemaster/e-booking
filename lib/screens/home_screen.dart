@@ -5,6 +5,7 @@ import 'booking_history_screen.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../providers/booking_provider.dart';
 import '../utils/currency_formatter.dart';
+import '../widgets/van_departure_countdown_widget.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -236,6 +237,9 @@ class _HomeTabState extends State<HomeTab> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // Van Departure Countdown Widget
+                        VanDepartureCountdownWidget(),
+                        
                         const SizedBox(height: 20),
 
                         // Quick Stats

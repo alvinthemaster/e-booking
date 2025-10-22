@@ -4,10 +4,17 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../providers/seat_provider.dart';
 import '../models/booking_models.dart';
 import '../widgets/terms_conditions_modal.dart';
+import '../widgets/van_seat_layout.dart';
+import '../widgets/bus_seat_layout.dart';
 import 'booking_form_screen.dart';
 
 class SeatSelectionScreen extends StatefulWidget {
-  const SeatSelectionScreen({super.key});
+  final String vehicleType; // 'van' or 'bus'
+  
+  const SeatSelectionScreen({
+    super.key,
+    this.vehicleType = 'van', // Default to 'van' for backward compatibility
+  });
 
   @override
   State<SeatSelectionScreen> createState() => _SeatSelectionScreenState();
@@ -29,7 +36,10 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
       await Provider.of<SeatProvider>(
         context,
         listen: false,
-      ).initializeSeats(routeId: 'SCLRIO5R1ckXKwz2ykxd');
+      ).initializeSeats(
+        routeId: 'FTz5KprpMPeF930xOEId',
+        vehicleType: widget.vehicleType,
+      );
       if (mounted) {
         setState(() {
           _isInitialized = true;
@@ -60,8 +70,8 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
         Provider.of<SeatProvider>(
           context,
           listen: false,
-        ).refreshSeatAvailability(routeId: 'SCLRIO5R1ckXKwz2ykxd');
-        _startPeriodicRefresh(); // Continue the cycle
+        ).refreshSeatAvailability(routeId: 'FTz5KprpMPeF930xOEId');
+        _startPeriodicRefresh(); // Schedule next refresh
       }
     });
   }
@@ -153,7 +163,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
 
                   // Refresh seat availability
                   await seatProvider.refreshSeatAvailability(
-                    routeId: 'SCLRIO5R1ckXKwz2ykxd',
+                    routeId: 'FTz5KprpMPeF930xOEId',
                   );
                 },
               ),
@@ -242,7 +252,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                 ),
               ),
 
-              // Van Layout
+              // Seat Layout (Van or Bus)
               Expanded(
                 child: Container(
                   margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -258,91 +268,23 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                       ),
                     ],
                   ),
-                  child: Column(
-                    children: [
-                      // Driver Section and adjacent seats
-                      Container(
-                        height: 80,
-                        margin: const EdgeInsets.only(bottom: 20),
-                        child: Row(
-                          children: [
-                            // Driver Section
-                            Expanded(
-                              flex: 2,
-                              child: Container(
-                                height: 80,
-                                decoration: BoxDecoration(
-                                  color: Colors.grey[200],
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: const Center(
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.drive_eta,
-                                        color: Colors.grey,
-                                        size: 28,
-                                      ),
-                                      SizedBox(height: 4),
-                                      Text(
-                                        'Driver',
-                                        style: TextStyle(
-                                          color: Colors.grey,
-                                          fontWeight: FontWeight.w500,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-
-                            const SizedBox(width: 12),
-
-                            // Driver-adjacent seats (2 seats)
-                            Expanded(
-                              flex: 3,
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: _buildSeat(
-                                      seatProvider.seats.firstWhere(
-                                        (s) => s.id == 'D1A',
-                                        orElse: () => Seat(
-                                          id: 'D1A',
-                                          row: 0,
-                                          position: 'driver-right-window',
-                                        ),
-                                      ),
-                                      seatProvider,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: _buildSeat(
-                                      seatProvider.seats.firstWhere(
-                                        (s) => s.id == 'D1B',
-                                        orElse: () => Seat(
-                                          id: 'D1B',
-                                          row: 0,
-                                          position: 'driver-right-aisle',
-                                        ),
-                                      ),
-                                      seatProvider,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      // Seats Layout
-                      Expanded(child: _buildVanSeatsLayout(seatProvider)),
-                    ],
+                  child: Consumer<SeatProvider>(
+                    builder: (context, seatProvider, child) {
+                      // Determine which layout to use based on vehicle type
+                      if (seatProvider.vehicleType == 'bus') {
+                        return BusSeatLayout(
+                          seatProvider: seatProvider,
+                          onSeatTap: _handleSeatTap,
+                          onSeatLongPress: _handleSeatLongPress,
+                        );
+                      } else {
+                        return VanSeatLayout(
+                          seatProvider: seatProvider,
+                          onSeatTap: _handleSeatTap,
+                          onSeatLongPress: _handleSeatLongPress,
+                        );
+                      }
+                    },
                   ),
                 ),
               ),
@@ -497,158 +439,27 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
     );
   }
 
-  Widget _buildVanSeatsLayout(SeatProvider seatProvider) {
-    return Column(
-      children: [
-        // Regular passenger rows (4 rows)
-        for (int row = 1; row <= 4; row++)
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4.0),
-              child: Row(
-                children: [
-                  // Left side - 2 seats
-                  Expanded(
-                    child: _buildSeat(
-                      seatProvider.seats.firstWhere(
-                        (s) => s.id == 'L${row}A',
-                        orElse: () => Seat(
-                          id: 'L${row}A',
-                          row: row,
-                          position: 'left-window',
-                        ),
-                      ),
-                      seatProvider,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _buildSeat(
-                      seatProvider.seats.firstWhere(
-                        (s) => s.id == 'L${row}B',
-                        orElse: () => Seat(
-                          id: 'L${row}B',
-                          row: row,
-                          position: 'left-aisle',
-                        ),
-                      ),
-                      seatProvider,
-                    ),
-                  ),
-
-                  // Aisle space
-                  const SizedBox(width: 20),
-
-                  // Right side - 2 seats
-                  Expanded(
-                    child: _buildSeat(
-                      seatProvider.seats.firstWhere(
-                        (s) => s.id == 'R${row}A',
-                        orElse: () => Seat(
-                          id: 'R${row}A',
-                          row: row,
-                          position: 'right-aisle',
-                        ),
-                      ),
-                      seatProvider,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _buildSeat(
-                      seatProvider.seats.firstWhere(
-                        (s) => s.id == 'R${row}B',
-                        orElse: () => Seat(
-                          id: 'R${row}B',
-                          row: row,
-                          position: 'right-window',
-                        ),
-                      ),
-                      seatProvider,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-      ],
-    );
+  // Handle seat tap
+  void _handleSeatTap(Seat seat, SeatProvider seatProvider) {
+    if (!seat.isReserved) {
+      seatProvider.toggleSeatSelection(seat.id);
+    } else {
+      // Show a message when trying to select a reserved seat
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Seat ${seat.id} is already reserved'),
+          backgroundColor: Colors.orange,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
-  Widget _buildSeat(Seat seat, SeatProvider seatProvider) {
-    Color seatColor;
-    Color textColor;
-    Color borderColor;
-    Widget? overlayIcon;
-
-    if (seat.isReserved) {
-      seatColor = Colors.red[300]!;
-      textColor = Colors.white;
-      borderColor = Colors.red[500]!;
-      overlayIcon = const Icon(Icons.lock, color: Colors.white, size: 16);
-    } else if (seat.isSelected) {
-      if (seat.hasDiscount) {
-        seatColor = const Color(0xFF4CAF50);
-        textColor = Colors.white;
-        borderColor = const Color(0xFF388E3C);
-      } else {
-        seatColor = const Color(0xFF2196F3);
-        textColor = Colors.white;
-        borderColor = const Color(0xFF1976D2);
-      }
-    } else {
-      seatColor = Colors.white;
-      textColor = Colors.grey[700]!;
-      borderColor = Colors.grey[300]!;
+  // Handle seat long press for discount
+  void _handleSeatLongPress(Seat seat, SeatProvider seatProvider) {
+    if (seat.isSelected && !seat.isReserved) {
+      _showDiscountDialog(seat, seatProvider);
     }
-
-    return GestureDetector(
-      onTap: () {
-        if (!seat.isReserved) {
-          seatProvider.toggleSeatSelection(seat.id);
-        } else {
-          // Show a message when trying to select a reserved seat
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Seat ${seat.id} is already reserved'),
-              backgroundColor: Colors.orange,
-              duration: const Duration(seconds: 2),
-            ),
-          );
-        }
-      },
-      onLongPress: () {
-        if (seat.isSelected && !seat.isReserved) {
-          _showDiscountDialog(seat, seatProvider);
-        }
-      },
-      child: Container(
-        height: double.infinity,
-        decoration: BoxDecoration(
-          color: seatColor,
-          border: Border.all(color: borderColor, width: 2),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (overlayIcon != null) overlayIcon,
-              Text(
-                seat.id,
-                style: TextStyle(
-                  color: textColor,
-                  fontWeight: FontWeight.w600,
-                  fontSize: overlayIcon != null ? 10 : 14,
-                ),
-              ),
-              if (seat.hasDiscount && !seat.isReserved)
-                Icon(Icons.local_offer, color: textColor, size: 12),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 
   Widget _buildSummaryRow(String label, String value, {bool isTotal = false}) {

@@ -354,6 +354,7 @@ class Van {
   final DateTime? lastMaintenance;
   final DateTime? nextMaintenance;
   final DateTime createdAt;
+  final String vehicleType; // 'van' or 'bus'
 
   Van({
     required this.id,
@@ -368,6 +369,7 @@ class Van {
     this.lastMaintenance,
     this.nextMaintenance,
     required this.createdAt,
+    this.vehicleType = 'van', // Default to 'van' for backward compatibility
   });
 
   Map<String, dynamic> toMap() {
@@ -388,6 +390,7 @@ class Van {
           ? Timestamp.fromDate(nextMaintenance!)
           : null,
       'createdAt': Timestamp.fromDate(createdAt),
+      'vehicleType': vehicleType,
     };
   }
 
@@ -411,6 +414,7 @@ class Van {
       createdAt: map['createdAt'] != null
           ? (map['createdAt'] as Timestamp).toDate()
           : DateTime.now(),
+      vehicleType: map['vehicleType'] ?? 'van', // Default to 'van' for backward compatibility
     );
   }
 

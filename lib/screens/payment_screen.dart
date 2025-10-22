@@ -528,7 +528,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
         try {
           final bookingId = await bookingProvider.createBooking(
-            routeId: 'SCLRIO5R1ckXKwz2ykxd', // Using Firestore-generated route ID
+            routeId: 'FTz5KprpMPeF930xOEId', // Using actual route ID from Firebase
             routeName: 'Glan to General Santos',
             origin: 'Glan',
             destination: 'General Santos',

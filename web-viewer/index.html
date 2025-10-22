@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UVexpress E-Ticket Viewer</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <h1>🚐 UVexpress</h1>
+                <p>E-Ticket Reservation System</p>
+            </div>
+        </header>
+
+        <!-- Search Section -->
+        <div class="search-section" id="searchSection">
+            <div class="card">
+                <h2>View Your E-Ticket</h2>
+                <p class="subtitle">Enter your Booking ID to view and download your e-ticket</p>
+                
+                <div class="input-group">
+                    <input 
+                        type="text" 
+                        id="bookingIdInput" 
+                        placeholder="Enter Booking ID (e.g., BOOK123456)"
+                        autocomplete="off"
+                    >
+                    <button id="searchBtn" onclick="searchTicket()">
+                        <span id="btnText">View Ticket</span>
+                        <span id="btnLoader" class="loader" style="display: none;"></span>
+                    </button>
+                </div>
+                
+                <div id="errorMessage" class="error-message" style="display: none;"></div>
+            </div>
+        </div>
+
+        <!-- Ticket Display Section -->
+        <div class="ticket-section" id="ticketSection" style="display: none;">
+            <div class="ticket-card">
+                <div class="ticket-header">
+                    <h2>E-Ticket Details</h2>
+                    <span class="status-badge" id="statusBadge">Confirmed</span>
+                </div>
+
+                <div class="ticket-content">
+                    <!-- Booking Information -->
+                    <div class="info-section">
+                        <h3>Booking Information</h3>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <label>Booking ID:</label>
+                                <span id="ticketBookingId">-</span>
+                            </div>
+                            <div class="info-item">
+                                <label>Booking Date:</label>
+                                <span id="ticketBookingDate">-</span>
+                            </div>
+                            <div class="info-item">
+                                <label>Status:</label>
+                                <span id="ticketStatus">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Passenger Information -->
+                    <div class="info-section">
+                        <h3>Passenger Information</h3>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <label>Name:</label>
+                                <span id="ticketName">-</span>
+                            </div>
+                            <div class="info-item">
+                                <label>Contact:</label>
+                                <span id="ticketContact">-</span>
+                            </div>
+                            <div class="info-item">
+                                <label>Email:</label>
+                                <span id="ticketEmail">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Trip Information -->
+                    <div class="info-section">
+                        <h3>Trip Details</h3>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <label>Route:</label>
+                                <span id="ticketRoute">-</span>
+                            </div>
+                            <div class="info-item">
+                                <label>Van/Bus:</label>
+                                <span id="ticketVan">-</span>
+                            </div>
+                            <div class="info-item">
+                                <label>Driver:</label>
+                                <span id="ticketDriver">-</span>
+                            </div>
+                            <div class="info-item">
+                                <label>Departure:</label>
+                                <span id="ticketDeparture">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Seats & Payment -->
+                    <div class="info-section">
+                        <h3>Seats & Payment</h3>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <label>Seat Numbers:</label>
+                                <span id="ticketSeats" class="seats-badge">-</span>
+                            </div>
+                            <div class="info-item">
+                                <label>Total Amount:</label>
+                                <span id="ticketAmount" class="amount">-</span>
+                            </div>
+                            <div class="info-item">
+                                <label>Payment Method:</label>
+                                <span id="ticketPayment">-</span>
+                            </div>
+                            <div class="info-item">
+                                <label>Payment Status:</label>
+                                <span id="ticketPaymentStatus">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- QR Code Section -->
+                    <div class="qr-section">
+                        <h3>Scan QR Code</h3>
+                        <p class="qr-instruction">Show this QR code to the driver when boarding</p>
+                        <div id="qrCode" class="qr-code-container"></div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="ticket-actions">
+                    <button class="btn-secondary" onclick="printTicket()">
+                        🖨️ Print Ticket
+                    </button>
+                    <button class="btn-secondary" onclick="downloadTicket()">
+                        📥 Download PDF
+                    </button>
+                    <button class="btn-primary" onclick="searchAnother()">
+                        🔍 Search Another
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>&copy; 2025 UVexpress. All rights reserved.</p>
+            <p>For support, contact: support@uvexpress.com</p>
+        </footer>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
+    <!-- QR Code Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    
+    <!-- jsPDF Library for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <!-- Main Script -->
+    <script src="firebase-config.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

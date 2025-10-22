@@ -520,6 +520,9 @@ class _HomeTabState extends State<HomeTab> {
                                   else
                                     Column(
                                       children: bookingProvider.vans.map((van) {
+                                        // Safety check: ensure vehicleType is never null
+                                        final String safeVehicleType = van.vehicleType.isNotEmpty ? van.vehicleType : 'van';
+                                        
                                         return _buildVanQueueCard(
                                           vanNumber: van.queuePosition
                                               .toString(),
@@ -530,12 +533,15 @@ class _HomeTabState extends State<HomeTab> {
                                           occupancy: van.currentOccupancy,
                                           maxSeats: van.capacity,
                                           isActive: van.canBook,
+                                          vehicleType: safeVehicleType, // Pass vehicle type with safety check
                                           onBook: () {
                                             Navigator.push(
                                               context,
                                               MaterialPageRoute(
                                                 builder: (context) =>
-                                                    const SeatSelectionScreen(),
+                                                    SeatSelectionScreen(
+                                                      vehicleType: safeVehicleType,
+                                                    ),
                                               ),
                                             );
                                           },
@@ -603,6 +609,7 @@ class _HomeTabState extends State<HomeTab> {
     required int maxSeats,
     required bool isActive,
     required VoidCallback onBook,
+    String vehicleType = 'van', // NEW: Add vehicle type parameter
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -620,7 +627,7 @@ class _HomeTabState extends State<HomeTab> {
           // Top Row: Van Icon + Details + Status
           Row(
             children: [
-              // Van Icon and Number
+              // Van/Bus Icon and Number
               Container(
                 width: 45,
                 height: 45,
@@ -632,7 +639,11 @@ class _HomeTabState extends State<HomeTab> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.directions_bus, color: Colors.white, size: 18),
+                      Icon(
+                        vehicleType == 'bus' ? Icons.airport_shuttle : Icons.directions_bus,
+                        color: Colors.white,
+                        size: 18,
+                      ),
                       Text(
                         vanNumber,
                         style: const TextStyle(
@@ -648,13 +659,13 @@ class _HomeTabState extends State<HomeTab> {
 
               const SizedBox(width: 12),
 
-              // Van Details
+              // Vehicle Details
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Van $vanNumber',
+                      '${vehicleType == 'bus' ? 'Bus' : 'Van'} $vanNumber',
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,

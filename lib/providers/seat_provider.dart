@@ -8,32 +8,62 @@ class SeatProvider with ChangeNotifier {
   List<Seat> _selectedSeats = [];
   final double _baseFare = 150.0;
   final double _discountRate = 0.1333; // 13.33%
+  String _vehicleType = 'van'; // Default to 'van'
 
   List<Seat> get seats => _seats;
   List<Seat> get selectedSeats => _selectedSeats;
   double get baseFare => _baseFare;
   double get discountRate => _discountRate;
+  String get vehicleType => _vehicleType;
 
   int get maxSeatsPerBooking => 5;
 
-  Future<void> initializeSeats({String? routeId}) async {
-    // Initialize van seats with new layout (18 seats total)
-    // 2 seats beside driver + 4 rows of 4 seats each = 18 seats
+  Future<void> initializeSeats({String? routeId, String vehicleType = 'van'}) async {
+    _vehicleType = vehicleType;
     _seats = [];
 
-    // First row - beside driver (2 seats)
-    _seats.add(Seat(id: 'D1A', row: 0, position: 'driver-right-window'));
-    _seats.add(Seat(id: 'D1B', row: 0, position: 'driver-right-aisle'));
+    if (vehicleType == 'bus') {
+      // Initialize bus seats (22 seats total)
+      // 1 seat beside driver + 4 rows: 2-2 configuration (16 seats) + 1 row: 3-2 configuration (5 seats)
+      
+      // Driver-adjacent seat (1 seat on the right)
+      _seats.add(Seat(id: 'D1A', row: 0, position: 'driver-right'));
 
-    // Regular rows (4 rows with 4 seats each)
-    for (int row = 1; row <= 4; row++) {
-      // Left side seats (2 seats)
-      _seats.add(Seat(id: 'L${row}A', row: row, position: 'left-window'));
-      _seats.add(Seat(id: 'L${row}B', row: row, position: 'left-aisle'));
+      // First 4 rows: 2-2 configuration (16 seats)
+      for (int row = 1; row <= 4; row++) {
+        // Left side seats (2 seats)
+        _seats.add(Seat(id: 'L${row}A', row: row, position: 'left-window'));
+        _seats.add(Seat(id: 'L${row}B', row: row, position: 'left-aisle'));
 
-      // Right side seats (2 seats)
-      _seats.add(Seat(id: 'R${row}A', row: row, position: 'right-aisle'));
-      _seats.add(Seat(id: 'R${row}B', row: row, position: 'right-window'));
+        // Right side seats (2 seats)
+        _seats.add(Seat(id: 'R${row}A', row: row, position: 'right-aisle'));
+        _seats.add(Seat(id: 'R${row}B', row: row, position: 'right-window'));
+      }
+      
+      // Last row (Row 5): 3-2 configuration (5 seats)
+      _seats.add(Seat(id: 'L5A', row: 5, position: 'left-window'));
+      _seats.add(Seat(id: 'L5B', row: 5, position: 'left-middle'));
+      _seats.add(Seat(id: 'L5C', row: 5, position: 'left-aisle'));
+      _seats.add(Seat(id: 'R5A', row: 5, position: 'right-aisle'));
+      _seats.add(Seat(id: 'R5B', row: 5, position: 'right-window'));
+    } else {
+      // Initialize van seats with new layout (18 seats total)
+      // 2 seats beside driver + 4 rows of 4 seats each = 18 seats
+
+      // First row - beside driver (2 seats)
+      _seats.add(Seat(id: 'D1A', row: 0, position: 'driver-right-window'));
+      _seats.add(Seat(id: 'D1B', row: 0, position: 'driver-right-aisle'));
+
+      // Regular rows (4 rows with 4 seats each)
+      for (int row = 1; row <= 4; row++) {
+        // Left side seats (2 seats)
+        _seats.add(Seat(id: 'L${row}A', row: row, position: 'left-window'));
+        _seats.add(Seat(id: 'L${row}B', row: row, position: 'left-aisle'));
+
+        // Right side seats (2 seats)
+        _seats.add(Seat(id: 'R${row}A', row: row, position: 'right-aisle'));
+        _seats.add(Seat(id: 'R${row}B', row: row, position: 'right-window'));
+      }
     }
 
     // Load reserved seats from Firebase if routeId is provided

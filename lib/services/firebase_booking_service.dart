@@ -273,29 +273,61 @@ class FirebaseBookingService {
   /// Get available vans for booking (only boarding vans) - integrates with admin van management
   Future<List<Van>> getAvailableVansForBooking(String routeId) async {
     try {
-      // Get only vans with 'boarding' status - actively accepting passengers
+      debugPrint('🔍 Looking for vans with routeId: $routeId');
+      
+      // OPTIMIZED: Use fewer where clauses to avoid complex index requirements
+      // Query with just currentRouteId and status, filter isActive in memory
       final vansQuery = await _vansCollection
           .where('currentRouteId', isEqualTo: routeId)
-          .where('isActive', isEqualTo: true)
           .where('status', isEqualTo: 'boarding') // Only boarding status
           .get();
+
+      debugPrint('📄 Found ${vansQuery.docs.length} vans matching routeId: $routeId');
 
       final availableVans = <Van>[];
       for (final doc in vansQuery.docs) {
         final van = Van.fromDocument(doc);
-        // Double-check capacity (admin system should handle this, but safety check)
-        if (van.currentOccupancy < van.capacity) {
+        debugPrint('🚐 Van: ${van.plateNumber}, Route: ${van.currentRouteId}, Status: ${van.status}, Active: ${van.isActive}, Occupancy: ${van.currentOccupancy}/${van.capacity}');
+        
+        // Filter by isActive and capacity in memory
+        if (van.isActive && van.currentOccupancy < van.capacity) {
           availableVans.add(van);
+          debugPrint('✅ Added available van: ${van.plateNumber}');
+        } else {
+          if (!van.isActive) {
+            debugPrint('❌ Van ${van.plateNumber} is not active');
+          }
+          if (van.currentOccupancy >= van.capacity) {
+            debugPrint('❌ Van ${van.plateNumber} is full');
+          }
         }
       }
 
       // Sort by queue position for proper van selection
       availableVans.sort((a, b) => a.queuePosition.compareTo(b.queuePosition));
       
-      debugPrint('Available boarding vans: ${availableVans.length}');
+      debugPrint('✅ Available boarding vans: ${availableVans.length}');
+      
+      // If no vans found, check all vans to help debug
+      if (availableVans.isEmpty) {
+        debugPrint('⚠️ No vans found with routeId: $routeId. Checking all vans...');
+        final allVansQuery = await _vansCollection.get();
+        debugPrint('📊 Total vans in database: ${allVansQuery.docs.length}');
+        for (final doc in allVansQuery.docs) {
+          final van = Van.fromDocument(doc);
+          debugPrint('  📋 Van: ${van.plateNumber}, CurrentRoute: "${van.currentRouteId}", Status: ${van.status}, Active: ${van.isActive}');
+        }
+      }
+      
       return availableVans;
     } catch (e) {
-      debugPrint('Error getting available vans for booking: $e');
+      debugPrint('❌ Error getting available vans for booking: $e');
+      debugPrint('❌ Error details: ${e.toString()}');
+      if (e.toString().contains('index')) {
+        debugPrint('🔥 FIRESTORE INDEX ERROR DETECTED!');
+        debugPrint('📝 Please create a composite index for: currentRouteId + status');
+        debugPrint('💡 Go to Firebase Console → Firestore → Indexes and add the index');
+      }
       return [];
     }
   }
@@ -735,6 +767,19 @@ class FirebaseBookingService {
     }
   }
 
+  /// Get all vans from Firestore
+  Future<List<Van>> getAllVans() async {
+    try {
+      final querySnapshot = await _vansCollection.get();
+      return querySnapshot.docs
+          .map((doc) => Van.fromDocument(doc))
+          .toList();
+    } catch (e) {
+      debugPrint('❌ Error getting all vans: $e');
+      return [];
+    }
+  }
+
   /// Mark all active bookings for a specific van as completed
   Future<void> completeAllBookingsForVan(String vanId) async {
     try {
@@ -798,6 +843,83 @@ class FirebaseBookingService {
     } catch (e) {
       debugPrint('Error checking if trip can be completed: $e');
       return false;
+    }
+  }
+
+  /// Update van's current route - useful when assigning vans to routes
+  Future<void> updateVanRoute(String vanId, String routeId) async {
+    try {
+      await _vansCollection.doc(vanId).update({
+        'currentRouteId': routeId,
+      });
+      debugPrint('✅ Updated van $vanId to route: $routeId');
+    } catch (e) {
+      debugPrint('❌ Error updating van route: $e');
+      throw Exception('Failed to update van route: $e');
+    }
+  }
+
+  /// Sync all vans to use the specified route, or first available route if not specified
+  Future<void> syncVansToAvailableRoute({String? specificRouteId}) async {
+    try {
+      debugPrint('🔄 Syncing vans to available routes...');
+      
+      String? targetRouteId;
+      String? targetRouteName;
+      
+      if (specificRouteId != null) {
+        // Use the specified route
+        final routeDoc = await _routesCollection.doc(specificRouteId).get();
+        if (routeDoc.exists) {
+          final route = Route.fromDocument(routeDoc);
+          targetRouteId = route.id;
+          targetRouteName = route.name;
+          debugPrint('📍 Using specified route: $targetRouteName (ID: $targetRouteId)');
+        } else {
+          debugPrint('⚠️ Specified route not found, falling back to first available');
+        }
+      }
+      
+      // If no specific route or it wasn't found, get the first available route
+      if (targetRouteId == null) {
+        final routesQuery = await _routesCollection.where('isActive', isEqualTo: true).limit(1).get();
+        
+        if (routesQuery.docs.isEmpty) {
+          debugPrint('⚠️ No active routes found');
+          return;
+        }
+        
+        final firstRoute = Route.fromDocument(routesQuery.docs.first);
+        targetRouteId = firstRoute.id;
+        targetRouteName = firstRoute.name;
+        debugPrint('📍 Using first available route: $targetRouteName (ID: $targetRouteId)');
+      }
+      
+      // Get all vans
+      final vansQuery = await _vansCollection.get();
+      debugPrint('🚐 Found ${vansQuery.docs.length} vans to sync');
+      
+      int updatedCount = 0;
+      int alreadyCorrectCount = 0;
+      
+      // Update each van's currentRouteId
+      for (final vanDoc in vansQuery.docs) {
+        final van = Van.fromDocument(vanDoc);
+        if (van.currentRouteId != targetRouteId) {
+          await updateVanRoute(van.id, targetRouteId);
+          debugPrint('✅ Updated ${van.vehicleType.toUpperCase()} ${van.plateNumber} from route "${van.currentRouteId}" to "$targetRouteId"');
+          updatedCount++;
+        } else {
+          debugPrint('✓ ${van.vehicleType.toUpperCase()} ${van.plateNumber} already assigned to correct route');
+          alreadyCorrectCount++;
+        }
+      }
+      
+      debugPrint('✅ Finished syncing: $updatedCount vans updated, $alreadyCorrectCount already correct');
+      debugPrint('📍 All vans now assigned to route: $targetRouteId ($targetRouteName)');
+    } catch (e) {
+      debugPrint('❌ Error syncing vans to route: $e');
+      throw Exception('Failed to sync vans to route: $e');
     }
   }
 }

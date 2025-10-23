@@ -1,0 +1,51 @@
+# 🔥 SIMPLE INDEX FIX - Copy & Paste This!
+
+## The Problem:
+Your booking query needs a Firestore composite index, but it doesn't exist yet.
+
+## The Solution (2 minutes):
+
+### Step 1: Go to Firebase Console
+Click this link: https://console.firebase.google.com/project/e-ticket-2e8d0/firestore/indexes
+
+### Step 2: Click "Create Index" Button
+(Top right corner of the page)
+
+### Step 3: Fill in These EXACT Values:
+```
+Collection ID:     vans
+Field 1:           currentRouteId     →  Ascending
+Field 2:           status             →  Ascending
+Query scope:       Collection
+```
+
+### Step 4: Click "Create"
+
+### Step 5: Wait
+- Status will show "Building..." (30-60 seconds)
+- Wait until it shows "Enabled" with a green checkmark
+- That's it!
+
+## Test Your Booking:
+1. Open your app
+2. Select a route
+3. Choose seats
+4. Click "Proceed to Booking"
+5. SUCCESS! 🎉
+
+---
+
+## Alternative: Let Firebase Auto-Create It
+
+1. Run your app now (without creating the index)
+2. Try to make a booking
+3. It will fail, but check the console output
+4. You'll see an error with a clickable link
+5. Click that link
+6. Firebase will show "Create Index" button
+7. Click it
+8. Done!
+
+---
+
+**That's literally all you need to do!** The code is perfect, it just needs this one index.

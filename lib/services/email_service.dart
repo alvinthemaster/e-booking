@@ -10,7 +10,7 @@ class EmailService {
   static const String _smtpHost = 'smtp.gmail.com';
   static const int _smtpPort = 587;
   static const String _senderEmail = 'godtrascoeticketsystem@gmail.com'; // Replace with your email
-  static const String _senderPassword = 'ppch tdwf oswa rrtk'; // Replace with your app password
+  static const String _senderPassword = 'gtmn iusj effr irmj'; // Gmail App Password
   static const String _senderName = 'GODTRASCO E-Ticket System';
 
   /// Sends an e-ticket email to the passenger
@@ -24,6 +24,16 @@ class EmailService {
     String? attachmentPath,
   }) async {
     try {
+      // Check if running on web - SMTP doesn't work in browsers
+      if (kIsWeb) {
+        if (kDebugMode) {
+          print('⚠️ Email service not available on web platform (SMTP requires native sockets)');
+          print('📧 E-ticket would be sent to: ${booking.userEmail}');
+          print('💡 Use mobile/desktop app or implement a backend API for web email functionality');
+        }
+        return false; // Gracefully fail on web
+      }
+
       // Validate email configuration
       if (_senderEmail == 'YOUR_EMAIL@gmail.com' || _senderPassword == 'YOUR_APP_PASSWORD') {
         throw Exception('Email service not configured. Please update SMTP credentials.');
@@ -58,13 +68,14 @@ class EmailService {
       final sendReport = await send(message, smtpServer);
       
       if (kDebugMode) {
-        print('E-ticket email sent successfully: ${sendReport.toString()}');
+        print('✅ E-ticket email sent successfully to: ${booking.userEmail}');
+        print('📧 Send report: ${sendReport.toString()}');
       }
 
       return true;
     } catch (e) {
       if (kDebugMode) {
-        print('Failed to send e-ticket email: $e');
+        print('❌ Failed to send e-ticket email: $e');
       }
       return false;
     }

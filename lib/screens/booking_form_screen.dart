@@ -7,12 +7,20 @@ class BookingFormScreen extends StatefulWidget {
   final List<Seat> selectedSeats;
   final double totalAmount;
   final double discountAmount;
+  final String routeId; // Add route ID
+  final String routeName; // Add route name
+  final String origin; // Add origin
+  final String destination; // Add destination
 
   const BookingFormScreen({
     super.key,
     required this.selectedSeats,
     required this.totalAmount,
     required this.discountAmount,
+    required this.routeId,
+    required this.routeName,
+    required this.origin,
+    required this.destination,
   });
 
   @override
@@ -451,6 +459,10 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
             passengerName: _nameController.text.trim(),
             passengerEmail: _emailController.text.trim(),
             passengerPhone: _phoneController.text.trim(),
+            routeId: widget.routeId, // Pass route ID
+            routeName: widget.routeName, // Pass route name
+            origin: widget.origin, // Pass origin
+            destination: widget.destination, // Pass destination
           ),
         ),
       );

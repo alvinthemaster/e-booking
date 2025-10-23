@@ -12,6 +12,7 @@ import 'widgets/user_booking_listener.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'services/notification_service.dart';
+import 'services/firebase_connection_test.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
 // Background message handler (must be top-level function)
@@ -33,6 +34,11 @@ void main() async {
   print(
     'Firebase apps initialized: ${Firebase.apps.map((app) => app.name).toList()}',
   );
+
+  // Test Firebase connection
+  print('\n🔍 Testing Firebase Connection...');
+  final connectionResults = await FirebaseConnectionTest.testConnection();
+  FirebaseConnectionTest.printConnectionReport(connectionResults);
 
   // Initialize Firebase Messaging background handler
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);

@@ -5,7 +5,6 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../providers/booking_provider.dart';
 import '../models/booking_models.dart';
 import 'eticket_screen.dart';
-import 'seat_selection_screen.dart';
 
 class BookingHistoryScreen extends StatefulWidget {
   const BookingHistoryScreen({super.key});
@@ -154,13 +153,8 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
             height: 48,
             child: ElevatedButton.icon(
               onPressed: () {
-                // Simply navigate to seat selection - the back button will properly return to booking history
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const SeatSelectionScreen(),
-                  ),
-                );
+                // Navigate back to home screen where user can select a route and book
+                Navigator.pop(context);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF2196F3),

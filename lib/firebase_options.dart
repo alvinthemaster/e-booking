@@ -41,20 +41,22 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyCQdLMgW1C5VCszjRSq52FGh_hV8lGKr-4',
-    appId: '1:321196714455:web:YOUR_WEB_APP_ID',
-    messagingSenderId: '321196714455',
-    projectId: 'e-ticket-ff181',
-    authDomain: 'e-ticket-ff181.firebaseapp.com',
-    storageBucket: 'e-ticket-ff181.firebasestorage.app',
+    apiKey: 'AIzaSyA9L9u7hTM5ivm1mi8YnkQiJzvuquUECs0',
+    appId: '1:774845116609:web:44bbfe42f4ae8ecabc6440',
+    messagingSenderId: '774845116609',
+    projectId: 'e-ticket-2e8d0',
+    authDomain: 'e-ticket-2e8d0.firebaseapp.com',
+    storageBucket: 'e-ticket-2e8d0.firebasestorage.app',
+    databaseURL: 'https://e-ticket-2e8d0-default-rtdb.asia-southeast1.firebasedatabase.app',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyCQdLMgW1C5VCszjRSq52FGh_hV8lGKr-4',
-    appId: '1:321196714455:android:3ff8051f1ee87965fb4392',
-    messagingSenderId: '321196714455',
-    projectId: 'e-ticket-ff181',
-    storageBucket: 'e-ticket-ff181.firebasestorage.app',
+    apiKey: 'AIzaSyA9L9u7hTM5ivm1mi8YnkQiJzvuquUECs0',
+    appId: '1:774845116609:android:1136a5b7b1bcfdf0bc6440',
+    messagingSenderId: '774845116609',
+    projectId: 'e-ticket-2e8d0',
+    storageBucket: 'e-ticket-2e8d0.firebasestorage.app',
+    databaseURL: 'https://e-ticket-2e8d0-default-rtdb.asia-southeast1.firebasedatabase.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(

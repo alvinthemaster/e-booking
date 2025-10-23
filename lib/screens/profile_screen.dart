@@ -446,7 +446,7 @@ class ProfileScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                '© 2025 GODTRASCO. All rights reserved.',
+                '© 2025 GODTRASCO. All rights reserved. Developed by AATJR',
                 style: GoogleFonts.poppins(
                   fontSize: 12,
                   color: Colors.grey[500],

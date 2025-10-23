@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'seat_selection_screen.dart';
 import 'booking_history_screen.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../providers/booking_provider.dart';
 import '../utils/currency_formatter.dart';
+import '../utils/firestore_debugger.dart';
 import '../widgets/van_departure_countdown_widget.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -97,6 +99,16 @@ class _HomeTabState extends State<HomeTab> {
       // Check for existing vans first - DON'T create sample vans if real ones exist
       debugPrint('🔍 Checking for existing vans in Firestore...');
       await bookingProvider.initializeSampleVansSilent();
+
+      // Sync vans to ensure they have correct route IDs
+      debugPrint('🔄 Syncing vans to available routes...');
+      await bookingProvider.syncVansToRoutes();
+
+      // Debug Firestore data for troubleshooting
+      if (kDebugMode) {
+        debugPrint('🔍 Running Firestore debug checks...');
+        await FirestoreDebugger.debugVansCollection();
+      }
 
       // Force load fresh data from Firestore after initialization
       debugPrint('🔄 Force loading fresh van data from Firestore...');
@@ -326,18 +338,36 @@ class _HomeTabState extends State<HomeTab> {
                                     ),
                                   ],
                                 ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Select a route to view available vans',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
                                 const SizedBox(height: 16),
                                 ...routes.map(
-                                  (route) => Container(
-                                    margin: const EdgeInsets.only(bottom: 12),
-                                    padding: const EdgeInsets.all(16),
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey[50],
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: Colors.grey[200]!,
+                                  (route) => GestureDetector(
+                                    onTap: () async {
+                                      // Select this route and load its vans
+                                      await bookingProvider.selectRoute(route);
+                                    },
+                                    child: Container(
+                                      margin: const EdgeInsets.only(bottom: 12),
+                                      padding: const EdgeInsets.all(16),
+                                      decoration: BoxDecoration(
+                                        color: bookingProvider.selectedRoute?.id == route.id
+                                            ? const Color(0xFF2196F3).withOpacity(0.1)
+                                            : Colors.grey[50],
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: bookingProvider.selectedRoute?.id == route.id
+                                              ? const Color(0xFF2196F3)
+                                              : Colors.grey[200]!,
+                                          width: bookingProvider.selectedRoute?.id == route.id ? 2 : 1,
+                                        ),
                                       ),
-                                    ),
                                     child: Row(
                                       children: [
                                         Expanded(
@@ -401,6 +431,7 @@ class _HomeTabState extends State<HomeTab> {
                                       ],
                                     ),
                                   ),
+                                    ), // Close GestureDetector
                                 ),
                               ],
                             );
@@ -437,11 +468,27 @@ class _HomeTabState extends State<HomeTab> {
                                         size: 24,
                                       ),
                                       const SizedBox(width: 8),
-                                      const Text(
-                                        'Van Queue Status',
-                                        style: TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.w600,
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            const Text(
+                                              'Available Vans',
+                                              style: TextStyle(
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                            if (bookingProvider.selectedRoute != null)
+                                              Text(
+                                                'For: ${bookingProvider.selectedRoute!.name}',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: Colors.grey[600],
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                          ],
                                         ),
                                       ),
                                     ],
@@ -504,16 +551,32 @@ class _HomeTabState extends State<HomeTab> {
                                       child: Column(
                                         children: [
                                           Icon(
-                                            Icons.info,
+                                            bookingProvider.selectedRoute == null 
+                                                ? Icons.touch_app 
+                                                : Icons.info,
                                             color: Colors.grey[400],
+                                            size: 48,
                                           ),
-                                          const SizedBox(height: 8),
+                                          const SizedBox(height: 12),
                                           Text(
-                                            'No vans available in queue',
+                                            bookingProvider.selectedRoute == null
+                                                ? 'Please select a route above to view available vans'
+                                                : 'No boarding vans available for this route',
+                                            textAlign: TextAlign.center,
                                             style: TextStyle(
                                               color: Colors.grey[600],
+                                              fontSize: 14,
                                             ),
                                           ),
+                                          if (bookingProvider.selectedRoute == null)
+                                            Padding(
+                                              padding: const EdgeInsets.only(top: 8),
+                                              child: Icon(
+                                                Icons.arrow_upward,
+                                                color: const Color(0xFF2196F3),
+                                                size: 24,
+                                              ),
+                                            ),
                                         ],
                                       ),
                                     )
@@ -534,16 +597,37 @@ class _HomeTabState extends State<HomeTab> {
                                           maxSeats: van.capacity,
                                           isActive: van.canBook,
                                           vehicleType: safeVehicleType, // Pass vehicle type with safety check
-                                          onBook: () {
-                                            Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (context) =>
-                                                    SeatSelectionScreen(
-                                                      vehicleType: safeVehicleType,
-                                                    ),
-                                              ),
-                                            );
+                                          onBook: () async {
+                                            // Check if a route is selected
+                                            if (bookingProvider.selectedRoute == null) {
+                                              if (context.mounted) {
+                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                  const SnackBar(
+                                                    content: Text('Please select a route first'),
+                                                    backgroundColor: Colors.red,
+                                                    duration: Duration(seconds: 2),
+                                                  ),
+                                                );
+                                              }
+                                              return;
+                                            }
+                                            
+                                            final selectedRouteId = bookingProvider.selectedRoute!.id;
+                                            debugPrint('🎫 Booking initiated for route: $selectedRouteId');
+                                            
+                                            // Navigate to seat selection with the route ID
+                                            if (context.mounted) {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      SeatSelectionScreen(
+                                                        vehicleType: safeVehicleType,
+                                                        routeId: selectedRouteId, // Pass the selected route ID
+                                                      ),
+                                                ),
+                                              );
+                                            }
                                           },
                                         );
                                       }).toList(),

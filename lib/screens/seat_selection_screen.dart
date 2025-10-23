@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../providers/seat_provider.dart';
-import '../models/booking_models.dart';
+import '../providers/booking_provider.dart';
+import '../models/booking_models.dart' as models;
 import '../widgets/terms_conditions_modal.dart';
 import '../widgets/van_seat_layout.dart';
 import '../widgets/bus_seat_layout.dart';
@@ -10,10 +11,12 @@ import 'booking_form_screen.dart';
 
 class SeatSelectionScreen extends StatefulWidget {
   final String vehicleType; // 'van' or 'bus'
+  final String routeId; // The route ID for this booking
   
   const SeatSelectionScreen({
     super.key,
     this.vehicleType = 'van', // Default to 'van' for backward compatibility
+    required this.routeId, // Route ID is now required
   });
 
   @override
@@ -32,12 +35,13 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
 
   void _initializeSeatsData() async {
     try {
-      // Using Firestore-generated route ID from admin route management
+      // Use the route ID passed from home screen
+      debugPrint('🎫 Initializing seats for route: ${widget.routeId}');
       await Provider.of<SeatProvider>(
         context,
         listen: false,
       ).initializeSeats(
-        routeId: 'FTz5KprpMPeF930xOEId',
+        routeId: widget.routeId,
         vehicleType: widget.vehicleType,
       );
       if (mounted) {
@@ -70,7 +74,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
         Provider.of<SeatProvider>(
           context,
           listen: false,
-        ).refreshSeatAvailability(routeId: 'FTz5KprpMPeF930xOEId');
+        ).refreshSeatAvailability(routeId: widget.routeId);
         _startPeriodicRefresh(); // Schedule next refresh
       }
     });
@@ -163,7 +167,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
 
                   // Refresh seat availability
                   await seatProvider.refreshSeatAvailability(
-                    routeId: 'FTz5KprpMPeF930xOEId',
+                    routeId: widget.routeId,
                   );
                 },
               ),
@@ -383,20 +387,46 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                               context: context,
                               barrierDismissible: false,
                               builder: (context) => TermsConditionsModal(
-                                onAccept: () {
-                                  // After accepting terms, proceed to booking
-                                  Navigator.push(
+                                onAccept: () async {
+                                  // Get route details from booking provider
+                                  final bookingProvider = Provider.of<BookingProvider>(
                                     context,
-                                    MaterialPageRoute(
-                                      builder: (context) => BookingFormScreen(
-                                        selectedSeats: seatProvider.selectedSeats,
-                                        totalAmount: seatProvider
-                                            .calculateTotalAmountWithFee(),
-                                        discountAmount: seatProvider
-                                            .calculateDiscountAmount(),
-                                      ),
+                                    listen: false,
+                                  );
+                                  
+                                  // Find the route that matches widget.routeId
+                                  final route = bookingProvider.routes.firstWhere(
+                                    (r) => r.id == widget.routeId,
+                                    orElse: () => models.Route(
+                                      id: widget.routeId,
+                                      name: 'Unknown Route',
+                                      origin: 'Unknown',
+                                      destination: 'Unknown',
+                                      basePrice: 0,
+                                      estimatedDuration: 0,
+                                      waypoints: [],
                                     ),
                                   );
+                                  
+                                  // After accepting terms, proceed to booking
+                                  if (context.mounted) {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => BookingFormScreen(
+                                          selectedSeats: seatProvider.selectedSeats,
+                                          totalAmount: seatProvider
+                                              .calculateTotalAmountWithFee(),
+                                          discountAmount: seatProvider
+                                              .calculateDiscountAmount(),
+                                          routeId: widget.routeId, // Pass route ID
+                                          routeName: route.name, // Pass route name
+                                          origin: route.origin, // Pass origin
+                                          destination: route.destination, // Pass destination
+                                        ),
+                                      ),
+                                    );
+                                  }
                                 },
                               ),
                             );
@@ -440,7 +470,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   }
 
   // Handle seat tap
-  void _handleSeatTap(Seat seat, SeatProvider seatProvider) {
+  void _handleSeatTap(models.Seat seat, SeatProvider seatProvider) {
     if (!seat.isReserved) {
       seatProvider.toggleSeatSelection(seat.id);
     } else {
@@ -456,7 +486,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   }
 
   // Handle seat long press for discount
-  void _handleSeatLongPress(Seat seat, SeatProvider seatProvider) {
+  void _handleSeatLongPress(models.Seat seat, SeatProvider seatProvider) {
     if (seat.isSelected && !seat.isReserved) {
       _showDiscountDialog(seat, seatProvider);
     }
@@ -537,7 +567,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
     );
   }
 
-  void _showDiscountDialog(Seat seat, SeatProvider seatProvider) {
+  void _showDiscountDialog(models.Seat seat, SeatProvider seatProvider) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(

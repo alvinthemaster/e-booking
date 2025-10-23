@@ -15,6 +15,10 @@ class PaymentScreen extends StatefulWidget {
   final String passengerName;
   final String passengerEmail;
   final String passengerPhone;
+  final String routeId; // Add route ID
+  final String routeName; // Add route name
+  final String origin; // Add origin
+  final String destination; // Add destination
 
   const PaymentScreen({
     super.key,
@@ -24,6 +28,10 @@ class PaymentScreen extends StatefulWidget {
     required this.passengerName,
     required this.passengerEmail,
     required this.passengerPhone,
+    required this.routeId,
+    required this.routeName,
+    required this.origin,
+    required this.destination,
   });
 
   @override
@@ -528,10 +536,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
         try {
           final bookingId = await bookingProvider.createBooking(
-            routeId: 'FTz5KprpMPeF930xOEId', // Using actual route ID from Firebase
-            routeName: 'Glan to General Santos',
-            origin: 'Glan',
-            destination: 'General Santos',
+            routeId: widget.routeId, // Use the route ID passed from seat selection
+            routeName: widget.routeName, // Use the route name passed from seat selection
+            origin: widget.origin, // Use the origin passed from seat selection
+            destination: widget.destination, // Use the destination passed from seat selection
             departureTime: DateTime.now().add(const Duration(hours: 2)),
             seatIds: widget.selectedSeats.map((seat) => seat.id).toList(),
             basePrice: widget.totalAmount - widget.discountAmount - 15.0, // Subtract discount and booking fee from total
@@ -572,11 +580,26 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     ),
                   );
                 } else {
+                  // Email failed (likely running on web)
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('⚠️ E-ticket created but email delivery failed. You can still view your ticket.'),
-                      backgroundColor: Colors.orange,
-                      duration: Duration(seconds: 4),
+                    SnackBar(
+                      content: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Text(
+                            '📱 E-ticket created successfully!',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            'Email not available on web. Use the mobile app or view your ticket in Booking History.',
+                            style: TextStyle(fontSize: 12),
+                          ),
+                        ],
+                      ),
+                      backgroundColor: const Color(0xFF2196F3),
+                      duration: const Duration(seconds: 5),
                     ),
                   );
                 }
@@ -585,7 +608,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('⚠️ E-ticket created but email delivery failed. You can still view your ticket.'),
+                    content: Text('⚠️ E-ticket created but email delivery failed. You can still view your ticket in Booking History.'),
                     backgroundColor: Colors.orange,
                     duration: Duration(seconds: 4),
                   ),

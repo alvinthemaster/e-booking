@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../providers/seat_provider.dart';
 import '../providers/booking_provider.dart';
 import '../models/booking_models.dart' as models;
@@ -186,29 +185,37 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
+                  horizontal: 12,
+                  vertical: 12,
                 ),
                 color: Colors.blue[50],
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    _buildInfoChip(
-                      'Available',
-                      seatProvider.seats
-                          .where((s) => !s.isReserved && !s.isSelected)
-                          .length,
-                      Colors.green,
+                    Flexible(
+                      child: _buildInfoChip(
+                        'Available',
+                        seatProvider.seats
+                            .where((s) => !s.isReserved && !s.isSelected)
+                            .length,
+                        Colors.green,
+                      ),
                     ),
-                    _buildInfoChip(
-                      'Selected',
-                      seatProvider.selectedSeats.length,
-                      Colors.blue,
+                    const SizedBox(width: 4),
+                    Flexible(
+                      child: _buildInfoChip(
+                        'Selected',
+                        seatProvider.selectedSeats.length,
+                        Colors.blue,
+                      ),
                     ),
-                    _buildInfoChip(
-                      'Reserved',
-                      seatProvider.seats.where((s) => s.isReserved).length,
-                      Colors.red,
+                    const SizedBox(width: 4),
+                    Flexible(
+                      child: _buildInfoChip(
+                        'Reserved',
+                        seatProvider.seats.where((s) => s.isReserved).length,
+                        Colors.red,
+                      ),
                     ),
                   ],
                 ),
@@ -216,8 +223,8 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
 
               // Legend
               Container(
-                margin: const EdgeInsets.all(16),
-                padding: const EdgeInsets.all(16),
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
@@ -230,27 +237,35 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                   ],
                 ),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    _buildLegendItem(
-                      'Available',
-                      Colors.white,
-                      Colors.grey[300]!,
+                    Flexible(
+                      child: _buildLegendItem(
+                        'Available',
+                        Colors.white,
+                        Colors.grey[300]!,
+                      ),
                     ),
-                    _buildLegendItem(
-                      'Selected',
-                      const Color(0xFF2196F3),
-                      Colors.white,
+                    Flexible(
+                      child: _buildLegendItem(
+                        'Selected',
+                        const Color(0xFF2196F3),
+                        Colors.white,
+                      ),
                     ),
-                    _buildLegendItem(
-                      'Reserved',
-                      Colors.red[300]!,
-                      Colors.red[800]!,
+                    Flexible(
+                      child: _buildLegendItem(
+                        'Reserved',
+                        Colors.red[300]!,
+                        Colors.red[800]!,
+                      ),
                     ),
-                    _buildLegendItem(
-                      'Discount',
-                      const Color(0xFF4CAF50),
-                      Colors.white,
+                    Flexible(
+                      child: _buildLegendItem(
+                        'Discount',
+                        const Color(0xFF4CAF50),
+                        Colors.white,
+                      ),
                     ),
                   ],
                 ),
@@ -296,7 +311,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
               // Selection Info
               if (seatProvider.selectedSeats.isNotEmpty) ...[
                 Container(
-                  margin: const EdgeInsets.all(16),
+                  margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -315,11 +330,14 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
-                            'Selection Summary',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
+                          const Flexible(
+                            child: Text(
+                              'Selection Summary',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           TextButton(
@@ -328,10 +346,14 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                                 _showBottomPanel = !_showBottomPanel;
                               });
                             },
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 8),
+                              minimumSize: const Size(0, 36),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
                             child: Text(
-                              _showBottomPanel
-                                  ? 'Hide Details'
-                                  : 'Show Details',
+                              _showBottomPanel ? 'Hide' : 'Details',
+                              style: const TextStyle(fontSize: 13),
                             ),
                           ),
                         ],
@@ -453,18 +475,29 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
 
   Widget _buildLegendItem(String label, Color color, Color borderColor) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 24,
-          height: 24,
+          width: 26,
+          height: 26,
           decoration: BoxDecoration(
             color: color,
             border: Border.all(color: borderColor, width: 2),
             borderRadius: BorderRadius.circular(6),
           ),
         ),
-        const SizedBox(height: 4),
-        Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+        const SizedBox(height: 6),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            color: Colors.grey[700],
+            fontWeight: FontWeight.w500,
+          ),
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
       ],
     );
   }
@@ -525,42 +558,65 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
     bool isTotal = false,
   }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      padding: const EdgeInsets.symmetric(vertical: 6.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: isTotal ? 16 : 14,
-              fontWeight: isTotal ? FontWeight.w600 : FontWeight.normal,
+          Flexible(
+            flex: 3,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: isTotal ? 16 : 14,
+                fontWeight: isTotal ? FontWeight.w600 : FontWeight.normal,
+              ),
+              overflow: TextOverflow.ellipsis,
             ),
           ),
-          Row(
-            children: [
-              if (prefix.isNotEmpty)
+          const SizedBox(width: 8),
+          Flexible(
+            flex: 2,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                if (prefix.isNotEmpty)
+                  Flexible(
+                    child: Text(
+                      prefix,
+                      style: TextStyle(
+                        fontSize: isTotal ? 16 : 14,
+                        fontWeight: isTotal ? FontWeight.w600 : FontWeight.normal,
+                        color: isTotal ? const Color(0xFF2196F3) : null,
+                      ),
+                      overflow: TextOverflow.visible,
+                    ),
+                  ),
                 Text(
-                  prefix,
+                  '₱',
                   style: TextStyle(
                     fontSize: isTotal ? 16 : 14,
                     fontWeight: isTotal ? FontWeight.w600 : FontWeight.normal,
-                    color: isTotal ? const Color(0xFF2196F3) : null,
+                    color: isTotal ? const Color(0xFF2196F3) : Colors.grey[700],
+                    fontFamily: 'Roboto',
                   ),
                 ),
-              FaIcon(
-                FontAwesomeIcons.pesoSign,
-                size: isTotal ? 14 : 12,
-                color: isTotal ? const Color(0xFF2196F3) : null,
-              ),
-              Text(
-                amount,
-                style: TextStyle(
-                  fontSize: isTotal ? 16 : 14,
-                  fontWeight: isTotal ? FontWeight.w600 : FontWeight.normal,
-                  color: isTotal ? const Color(0xFF2196F3) : null,
+                const SizedBox(width: 2),
+                Flexible(
+                  child: Text(
+                    amount,
+                    style: TextStyle(
+                      fontSize: isTotal ? 16 : 14,
+                      fontWeight: isTotal ? FontWeight.w600 : FontWeight.normal,
+                      color: isTotal ? const Color(0xFF2196F3) : null,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
@@ -596,7 +652,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
 
   Widget _buildInfoChip(String label, int count, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(20),
@@ -611,12 +667,16 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
             decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
           const SizedBox(width: 6),
-          Text(
-            '$label ($count)',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: color.withOpacity(0.8),
+          Flexible(
+            child: Text(
+              '$label ($count)',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey[800],
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],

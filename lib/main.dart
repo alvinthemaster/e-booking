@@ -18,7 +18,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 // Background message handler (must be top-level function)
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  // Firebase is already initialized, no need to initialize again
   debugPrint(
     'NotificationService: Handling background message: ${message.messageId}',
   );
@@ -27,8 +27,16 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize Firebase
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  // Initialize Firebase with error handling
+  try {
+    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  } catch (e) {
+    if (e.toString().contains('duplicate-app')) {
+      print('Firebase already initialized, skipping...');
+    } else {
+      rethrow;
+    }
+  }
 
   // Verify Firebase initialization
   print(

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'seat_selection_screen.dart';
 import 'booking_history_screen.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../providers/booking_provider.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/firestore_debugger.dart';
@@ -222,7 +222,7 @@ class _HomeTabState extends State<HomeTab> {
                   ),
                   const SizedBox(height: 24),
                   const Text(
-                    'Book your van seat with ease',
+                    'Book your seat with ease',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 18,
@@ -667,7 +667,7 @@ class _HomeTabState extends State<HomeTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: color, size: 28),
+          FaIcon(icon, color: color, size: 28),
           const SizedBox(height: 8),
           Text(
             value,

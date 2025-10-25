@@ -16,7 +16,7 @@ class SeatProvider with ChangeNotifier {
   double get discountRate => _discountRate;
   String get vehicleType => _vehicleType;
 
-  int get maxSeatsPerBooking => 5;
+  int get maxSeatsPerBooking => 999; // No practical limit
 
   Future<void> initializeSeats({String? routeId, String vehicleType = 'van'}) async {
     _vehicleType = vehicleType;
@@ -133,8 +133,7 @@ class SeatProvider with ChangeNotifier {
 
   bool canSelectSeat(Seat seat) {
     if (seat.isReserved) return false;
-    if (seat.isSelected) return true; // Can deselect
-    return _selectedSeats.length < maxSeatsPerBooking;
+    return true; // Allow selecting any available seat
   }
 
   void toggleSeatSelection(String seatId) {

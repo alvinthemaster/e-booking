@@ -130,6 +130,50 @@ class EmailService {
     final formattedDate = '${departureDate.day}/${departureDate.month}/${departureDate.year}';
     final formattedTime = '${departureDate.hour.toString().padLeft(2, '0')}:${departureDate.minute.toString().padLeft(2, '0')}';
     final passengerName = booking.passengerDetails?['name'] ?? booking.userName;
+    
+    // Get seat breakdown
+    final regularSeats = booking.passengerDetails?['regularSeats'] as List?;
+    final discountedSeats = booking.passengerDetails?['discountedSeats'] as List?;
+    
+    String fareBreakdownHtml = '';
+    
+    if (regularSeats != null && regularSeats.isNotEmpty) {
+      fareBreakdownHtml += '''
+                <div class="info-row">
+                    <span class="label">Regular Fare:<br><small style="color: #666;">${regularSeats.join(', ')}</small></span>
+                    <span class="value">₱${(regularSeats.length * 150).toStringAsFixed(2)}</span>
+                </div>
+      ''';
+    }
+    
+    if (discountedSeats != null && discountedSeats.isNotEmpty) {
+      fareBreakdownHtml += '''
+                <div class="info-row">
+                    <span class="label">Discounted Fare:<br><small style="color: #666;">${discountedSeats.join(', ')} (PWD/Senior/Student)</small></span>
+                    <span class="value">₱${(discountedSeats.length * 130).toStringAsFixed(2)}</span>
+                </div>
+                
+                <div class="info-row">
+                    <span class="label">Discount Applied:</span>
+                    <span class="value" style="color: #4CAF50; font-weight: 600;">-₱${(discountedSeats.length * 20).toStringAsFixed(2)}</span>
+                </div>
+      ''';
+    }
+    
+    // Fallback if no seat breakdown data
+    if (fareBreakdownHtml.isEmpty) {
+      fareBreakdownHtml = '''
+                <div class="info-row">
+                    <span class="label">Fare Subtotal:</span>
+                    <span class="value">${CurrencyFormatter.formatPesoWithDecimals(booking.basePrice)}</span>
+                </div>
+                
+                <div class="info-row">
+                    <span class="label">Discount Applied:</span>
+                    <span class="value" style="color: #4CAF50; font-weight: 600;">-${CurrencyFormatter.formatPesoWithDecimals(booking.discountAmount)}</span>
+                </div>
+      ''';
+    }
 
     return '''
 <!DOCTYPE html>
@@ -305,10 +349,29 @@ class EmailService {
                 </div>
                 
                 <div class="info-row">
-                    <span class="label">Total Amount:</span>
-                    <span class="value total-amount">${CurrencyFormatter.formatPesoWithDecimals(booking.totalAmount)}</span>
+                    <span class="label">Email:</span>
+                    <span class="value">${booking.userEmail}</span>
+                </div>
+            </div>
+
+            <!-- Payment Summary -->
+            <div class="ticket-info" style="background-color: #f9f9f9; border-left: 4px solid #2196F3;">
+                <h3 style="margin-top: 0; color: #2196F3;">💳 Payment Summary</h3>
+                
+                $fareBreakdownHtml
+                
+                <div class="info-row">
+                    <span class="label">Booking Fee:</span>
+                    <span class="value">${CurrencyFormatter.formatPesoWithDecimals(15.0)}</span>
                 </div>
                 
+                <div class="info-row" style="border-top: 2px solid #ddd; padding-top: 8px;">
+                    <span class="label" style="font-size: 16px; font-weight: bold; color: #2196F3;">Total Amount:</span>
+                    <span class="value" style="font-size: 18px; font-weight: bold; color: #2196F3;">${CurrencyFormatter.formatPesoWithDecimals(booking.totalAmount)}</span>
+                </div>
+            </div>
+
+            <div class="ticket-info">
                 <div class="info-row">
                     <span class="label">Status:</span>
                     <span class="status-badge">Confirmed</span>
@@ -356,6 +419,33 @@ class EmailService {
     final formattedTime = '${departureDate.hour.toString().padLeft(2, '0')}:${departureDate.minute.toString().padLeft(2, '0')}';
     final seatNumbers = booking.seatIds.join(', ');
     final passengerName = booking.passengerDetails?['name'] ?? booking.userName;
+    
+    // Get seat breakdown
+    final regularSeats = booking.passengerDetails?['regularSeats'] as List?;
+    final discountedSeats = booking.passengerDetails?['discountedSeats'] as List?;
+    
+    String fareBreakdownRows = '';
+    
+    if (regularSeats != null && regularSeats.isNotEmpty) {
+      fareBreakdownRows += '''
+            <tr><td class="label">Regular Fare:<br><small style="color: #666;">${regularSeats.join(', ')}</small></td><td>₱${(regularSeats.length * 150).toStringAsFixed(2)}</td></tr>
+      ''';
+    }
+    
+    if (discountedSeats != null && discountedSeats.isNotEmpty) {
+      fareBreakdownRows += '''
+            <tr><td class="label">Discounted Fare:<br><small style="color: #666;">${discountedSeats.join(', ')} (PWD/Senior/Student)</small></td><td>₱${(discountedSeats.length * 130).toStringAsFixed(2)}</td></tr>
+            <tr><td class="label">Discount Applied:</td><td style="color: #4CAF50; font-weight: 600;">-₱${(discountedSeats.length * 20).toStringAsFixed(2)}</td></tr>
+      ''';
+    }
+    
+    // Fallback if no seat breakdown data
+    if (fareBreakdownRows.isEmpty) {
+      fareBreakdownRows = '''
+            <tr><td class="label">Fare Subtotal:</td><td>${CurrencyFormatter.formatPesoWithDecimals(booking.basePrice)}</td></tr>
+            <tr><td class="label">Discount Applied:</td><td style="color: #4CAF50; font-weight: 600;">-${CurrencyFormatter.formatPesoWithDecimals(booking.discountAmount)}</td></tr>
+      ''';
+    }
 
     return '''
 <!DOCTYPE html>
@@ -389,8 +479,16 @@ class EmailService {
             <tr><td class="label">Route:</td><td>${booking.routeName}</td></tr>
             <tr><td class="label">Date:</td><td>$formattedDate</td></tr>
             <tr><td class="label">Time:</td><td>$formattedTime</td></tr>
+            <tr><td class="label">Passenger:</td><td>$passengerName</td></tr>
             <tr><td class="label">Seats:</td><td>$seatNumbers</td></tr>
-            <tr><td class="label">Total Amount:</td><td>${CurrencyFormatter.formatPesoWithDecimals(booking.totalAmount)}</td></tr>
+            <tr><td class="label">Email:</td><td>${booking.userEmail}</td></tr>
+        </table>
+
+        <h3 style="color: #2196F3; border-bottom: 2px solid #2196F3; padding-bottom: 5px;">💳 Payment Summary</h3>
+        <table class="info-table">
+            $fareBreakdownRows
+            <tr><td class="label">Booking Fee:</td><td>${CurrencyFormatter.formatPesoWithDecimals(15.0)}</td></tr>
+            <tr style="border-top: 2px solid #ddd;"><td class="label" style="font-size: 16px; font-weight: bold; color: #2196F3;">Total Amount:</td><td style="font-size: 18px; font-weight: bold; color: #2196F3;">${CurrencyFormatter.formatPesoWithDecimals(booking.totalAmount)}</td></tr>
         </table>
         
         <p><strong>Your e-ticket will be sent separately once payment is processed.</strong></p>

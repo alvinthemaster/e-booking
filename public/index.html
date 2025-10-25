@@ -64,6 +64,7 @@
         .info-row {
             display: flex;
             justify-content: space-between;
+            align-items: flex-start;
             margin-bottom: 10px;
             padding: 8px 0;
             border-bottom: 1px solid #e9ecef;
@@ -81,6 +82,7 @@
 
         .info-value {
             color: #333;
+            text-align: right;
         }
 
         .status {
@@ -252,6 +254,13 @@
                 </div>
             </div>
 
+            <div class="ticket-info" style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); border-left: 4px solid #2196F3;">
+                <h2 style="color: #2196F3;">💳 Payment Summary</h2>
+                <div id="payment-details">
+                    <!-- Payment details will be populated here -->
+                </div>
+            </div>
+
             <div class="status" id="status-container">
                 <span id="status-text">Pending Confirmation</span>
             </div>
@@ -337,16 +346,25 @@
                 console.log('Demo/Test mode activated');
                 // Show demo ticket data
                 const demoData = {
-                    passengerDetails: { name: 'Juan Dela Cruz' },
+                    passengerDetails: { 
+                        name: 'Juan Dela Cruz',
+                        email: 'juan@example.com',
+                        phone: '+63 912 345 6789',
+                        regularSeats: ['L1A'],
+                        discountedSeats: ['L1B']
+                    },
                     userName: 'Juan Dela Cruz',
-                    seatIds: ['A1', 'A2'],
+                    seatIds: ['L1A', 'L1B'],
                     origin: 'General Santos',
                     destination: 'Glan',
                     vanPlateNumber: 'ABC-1234',
                     vanDriverName: 'Pedro Santos',
                     departureTime: { seconds: Date.now() / 1000 },
                     eTicketId: 'ET-DEMO123',
-                    bookingStatus: 'confirmed'
+                    bookingStatus: 'confirmed',
+                    basePrice: 280.00,
+                    discountAmount: 20.00,
+                    totalAmount: 295.00
                 };
                 ticketData = demoData;
                 displayTicketInfo(demoData);
@@ -453,7 +471,89 @@
             document.getElementById('booking-date').textContent = data.departureTime ? new Date(data.departureTime.seconds * 1000).toLocaleDateString() : 'N/A';
             document.getElementById('booking-id').textContent = data.eTicketId || ticketId;
             
+            // Display payment summary
+            displayPaymentSummary(data);
+            
             document.getElementById('ticket-container').style.display = 'block';
+        }
+
+        // Display payment summary with seat breakdown
+        function displayPaymentSummary(data) {
+            const paymentContainer = document.getElementById('payment-details');
+            const regularSeats = data.passengerDetails?.regularSeats || [];
+            const discountedSeats = data.passengerDetails?.discountedSeats || [];
+            const totalAmount = data.totalAmount || 0;
+            const discountAmount = data.discountAmount || 0;
+            const basePrice = data.basePrice || 0;
+            
+            let html = '';
+            
+            // Regular fare seats
+            if (regularSeats.length > 0) {
+                html += `
+                    <div class="info-row">
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; color: #555;">Regular Fare:</div>
+                            <div style="font-size: 12px; color: #888; margin-top: 2px;">${regularSeats.join(', ')}</div>
+                        </div>
+                        <span class="info-value">₱${(regularSeats.length * 150).toFixed(2)}</span>
+                    </div>
+                `;
+            }
+            
+            // Discounted fare seats
+            if (discountedSeats.length > 0) {
+                html += `
+                    <div class="info-row">
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; color: #555;">Discounted Fare:</div>
+                            <div style="font-size: 12px; color: #888; margin-top: 2px;">${discountedSeats.join(', ')} (PWD/Senior/Student)</div>
+                        </div>
+                        <span class="info-value">₱${(discountedSeats.length * 130).toFixed(2)}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Discount Applied:</span>
+                        <span class="info-value" style="color: #4CAF50; font-weight: 600;">-₱${(discountedSeats.length * 20).toFixed(2)}</span>
+                    </div>
+                `;
+            }
+            
+            // Fallback if no seat breakdown available
+            if (regularSeats.length === 0 && discountedSeats.length === 0) {
+                html += `
+                    <div class="info-row">
+                        <span class="info-label">Fare Subtotal:</span>
+                        <span class="info-value">₱${basePrice.toFixed(2)}</span>
+                    </div>
+                `;
+                
+                if (discountAmount > 0) {
+                    html += `
+                        <div class="info-row">
+                            <span class="info-label">Discount Applied:</span>
+                            <span class="info-value" style="color: #4CAF50; font-weight: 600;">-₱${discountAmount.toFixed(2)}</span>
+                        </div>
+                    `;
+                }
+            }
+            
+            // Booking fee
+            html += `
+                <div class="info-row">
+                    <span class="info-label">Booking Fee:</span>
+                    <span class="info-value">₱15.00</span>
+                </div>
+            `;
+            
+            // Total amount with separator
+            html += `
+                <div class="info-row" style="border-top: 2px solid #2196F3; margin-top: 8px; padding-top: 8px;">
+                    <span class="info-label" style="font-size: 16px; font-weight: bold; color: #2196F3;">Total Amount:</span>
+                    <span class="info-value" style="font-size: 18px; font-weight: bold; color: #2196F3;">₱${totalAmount.toFixed(2)}</span>
+                </div>
+            `;
+            
+            paymentContainer.innerHTML = html;
         }
 
         // Show error message

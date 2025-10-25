@@ -552,6 +552,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
               'name': widget.passengerName,
               'email': widget.passengerEmail,
               'phone': widget.passengerPhone,
+              'seats': widget.selectedSeats.map((seat) => {
+                'id': seat.id,
+                'hasDiscount': seat.hasDiscount,
+              }).toList(),
+              'regularSeats': widget.selectedSeats.where((s) => !s.hasDiscount).map((s) => s.id).toList(),
+              'discountedSeats': widget.selectedSeats.where((s) => s.hasDiscount).map((s) => s.id).toList(),
             },
           );
 

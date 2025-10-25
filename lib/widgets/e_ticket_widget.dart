@@ -249,6 +249,101 @@ class _ETicketWidgetState extends State<ETicketWidget> {
                   ],
                 ),
 
+                const SizedBox(height: 16),
+
+                // Payment Summary
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Colors.grey.withOpacity(0.2),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.1),
+                        spreadRadius: 1,
+                        blurRadius: 5,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.receipt_long,
+                            color: const Color(0xFF2196F3),
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'Payment Summary',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      
+                      // Passenger
+                      _buildPaymentInfoRow(
+                        'Passenger:',
+                        widget.bookingData['passengerDetails'] != null 
+                            ? (widget.bookingData['passengerDetails'] as Map<String, dynamic>)['name'] ?? ''
+                            : widget.bookingData['userName'] ?? '',
+                      ),
+                      
+                      // Seats
+                      _buildPaymentInfoRow(
+                        'Seats:',
+                        widget.bookingData['seatIds'] != null
+                            ? (widget.bookingData['seatIds'] as List).join(', ')
+                            : '',
+                      ),
+                      
+                      // Email
+                      _buildPaymentInfoRow(
+                        'Email:',
+                        widget.bookingData['passengerDetails'] != null 
+                            ? (widget.bookingData['passengerDetails'] as Map<String, dynamic>)['email'] ?? ''
+                            : widget.bookingData['userEmail'] ?? '',
+                      ),
+                      
+                      const Divider(height: 20),
+                      
+                      // Get seat breakdown
+                      ..._buildSeatBreakdown(),
+                      
+                      // Booking Fee
+                      _buildPaymentAmountRow(
+                        'Booking Fee:',
+                        15.0,
+                        isPeso: true,
+                      ),
+                      
+                      const Divider(height: 20),
+                      
+                      // Total Amount
+                      _buildPaymentAmountRow(
+                        'Total Amount:',
+                        widget.bookingData['totalAmount'] != null
+                            ? (widget.bookingData['totalAmount'] as num).toDouble()
+                            : 0.0,
+                        isPeso: true,
+                        isTotal: true,
+                        color: const Color(0xFF2196F3),
+                      ),
+                    ],
+                  ),
+                ),
+
                 const SizedBox(height: 20),
 
                 // QR Code Section
@@ -359,5 +454,218 @@ class _ETicketWidgetState extends State<ETicketWidget> {
         ),
       ],
     );
+  }
+
+  Widget _buildPaymentInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 14,
+              color: Colors.black87,
+            ),
+          ),
+          Flexible(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 14,
+                color: Colors.black87,
+              ),
+              textAlign: TextAlign.right,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaymentAmountRow(
+    String label,
+    double amount, {
+    bool isPeso = false,
+    bool isTotal = false,
+    Color? color,
+  }) {
+    final displayColor = color ?? Colors.black87;
+    final fontSize = isTotal ? 16.0 : 14.0;
+    final fontWeight = isTotal ? FontWeight.bold : FontWeight.normal;
+    
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: fontSize,
+              color: isTotal ? displayColor : Colors.black87,
+              fontWeight: fontWeight,
+            ),
+          ),
+          Text(
+            isPeso 
+                ? '₱${amount.abs().toStringAsFixed(2)}'
+                : amount.toStringAsFixed(2),
+            style: TextStyle(
+              fontSize: fontSize,
+              color: displayColor,
+              fontWeight: fontWeight,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<Widget> _buildSeatBreakdown() {
+    final List<Widget> widgets = [];
+    final passengerDetails = widget.bookingData['passengerDetails'] as Map<String, dynamic>?;
+    
+    if (passengerDetails == null) {
+      // Fallback: show basic fare subtotal
+      widgets.add(_buildPaymentAmountRow(
+        'Fare Subtotal:',
+        widget.bookingData['basePrice'] != null
+            ? (widget.bookingData['basePrice'] as num).toDouble()
+            : 0.0,
+        isPeso: true,
+      ));
+      
+      if ((widget.bookingData['discountAmount'] ?? 0) > 0) {
+        widgets.add(_buildPaymentAmountRow(
+          'Discount Applied:',
+          -(widget.bookingData['discountAmount'] as num).toDouble(),
+          isPeso: true,
+          color: Colors.green,
+        ));
+      }
+      
+      return widgets;
+    }
+
+    final regularSeats = passengerDetails['regularSeats'] as List?;
+    final discountedSeats = passengerDetails['discountedSeats'] as List?;
+    
+    // Regular seats
+    if (regularSeats != null && regularSeats.isNotEmpty) {
+      widgets.add(
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Regular Fare:',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    Text(
+                      '${regularSeats.join(', ')}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                '₱${(regularSeats.length * 150).toStringAsFixed(2)}',
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    
+    // Discounted seats
+    if (discountedSeats != null && discountedSeats.isNotEmpty) {
+      widgets.add(
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Discounted Fare:',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    Text(
+                      '${discountedSeats.join(', ')} (PWD/Senior/Student)',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                '₱${(discountedSeats.length * 130).toStringAsFixed(2)}',
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+      
+      // Show discount savings
+      widgets.add(
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Discount Applied:',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[700],
+                ),
+              ),
+              Text(
+                '-₱${(discountedSeats.length * 20).toStringAsFixed(2)}',
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Colors.green,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    
+    return widgets;
   }
 }

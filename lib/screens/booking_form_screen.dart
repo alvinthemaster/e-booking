@@ -350,8 +350,7 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
                           Text(
                             '• E-tickets will be delivered within 2 minutes of payment confirmation\n'
                             '• Please arrive 15 minutes before departure time\n'
-                            '• Bring a valid ID for verification\n'
-                            '• Maximum 5 seats per booking',
+                            '• Bring a valid ID for verification',
                             style: TextStyle(
                               fontSize: 14,
                               color: Colors.blue[700],

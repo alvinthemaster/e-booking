@@ -275,6 +275,16 @@
                 </button>
             </div>
 
+            <div id="onboard-section" class="auth-section" style="display: none;">
+                <div class="input-group">
+                    <label for="conductor-pin-onboard">Conductor PIN:</label>
+                    <input type="password" id="conductor-pin-onboard" placeholder="Enter conductor PIN" maxlength="6">
+                </div>
+                <button class="btn" id="onboard-btn" onclick="markAsOnboard()" style="background: #4CAF50;">
+                    Mark as Onboard
+                </button>
+            </div>
+
             <div id="success-container" style="display: none;">
                 <div class="success-message">
                     ✅ Ticket confirmed successfully! Passenger is now onboard.
@@ -367,8 +377,21 @@
                     totalAmount: 295.00
                 };
                 ticketData = demoData;
+                // Compute initial status for demo based on discounts
+                const demoHasDiscount = (demoData.discountAmount && demoData.discountAmount > 0) ||
+                    (demoData.passengerDetails && demoData.passengerDetails.discountedSeats && demoData.passengerDetails.discountedSeats.length > 0);
+                demoData.bookingStatus = demoHasDiscount ? 'pending' : 'confirmed';
+
                 displayTicketInfo(demoData);
-                document.getElementById('status-text').textContent = isDemo ? 'Demo Mode - Pending Confirmation' : 'Test Mode - Pending Confirmation';
+                // For demo/test mode, show appropriate UI based on computed status
+                if (isDemo || isTest) {
+                    if (demoData.bookingStatus === 'confirmed') {
+                        document.getElementById('status-text').textContent = 'Demo Mode - Confirmed (Ready for Onboard)';
+                        showConfirmedForOnboard();
+                    } else {
+                        document.getElementById('status-text').textContent = 'Demo Mode - Pending Confirmation';
+                    }
+                }
                 return;
             }
             
@@ -426,11 +449,23 @@
                 ticketData = bookingDoc.data();
                 console.log('Loaded ticket data:', ticketData);
                 
-                // Check if booking is already confirmed or onboard
-                if (ticketData.bookingStatus === 'confirmed' || ticketData.bookingStatus === 'onboard' || ticketData.bookingStatus === 'completed') {
-                    console.log('Booking already confirmed with status:', ticketData.bookingStatus);
-                    showAlreadyConfirmed();
+                // Check booking status and show appropriate UI
+                if (ticketData.bookingStatus === 'onboard' || ticketData.bookingStatus === 'completed') {
+                    console.log('Booking already processed with status:', ticketData.bookingStatus);
+                    showAlreadyProcessed(ticketData.bookingStatus);
                     return;
+                } else if (ticketData.bookingStatus === 'confirmed') {
+                    console.log('Booking confirmed, showing onboard option');
+                    showConfirmedForOnboard();
+                    return;
+                } else {
+                    // For any other status (like pending from old bookings), show confirm option
+                    console.log('Booking pending or unknown status, showing confirm option');
+                    // Ensure the confirm UI is visible and onboard UI is hidden for pending bookings
+                    document.getElementById('auth-section').style.display = 'block';
+                    document.getElementById('onboard-section').style.display = 'none';
+                    document.getElementById('status-container').className = 'status pending';
+                    document.getElementById('status-text').textContent = '⏳ Pending Confirmation';
                 }
 
                 // Display ticket information
@@ -563,12 +598,23 @@
             document.getElementById('loading').style.display = 'none';
         }
 
-        // Show already confirmed status
-        function showAlreadyConfirmed() {
+        // Show already processed status (onboard or completed)
+        function showAlreadyProcessed(status) {
             displayTicketInfo(ticketData);
             document.getElementById('status-container').className = 'status confirmed';
-            document.getElementById('status-text').textContent = '✅ Already Confirmed';
+            const statusText = status === 'completed' ? '✅ Trip Completed' : '✅ Already Onboard';
+            document.getElementById('status-text').textContent = statusText;
             document.getElementById('auth-section').style.display = 'none';
+            document.getElementById('onboard-section').style.display = 'none';
+        }
+
+        // Show confirmed status with onboard option
+        function showConfirmedForOnboard() {
+            displayTicketInfo(ticketData);
+            document.getElementById('status-container').className = 'status confirmed';
+            document.getElementById('status-text').textContent = '✅ Confirmed - Ready for Boarding';
+            document.getElementById('auth-section').style.display = 'none';
+            document.getElementById('onboard-section').style.display = 'block';
         }
 
         // Confirm ticket
@@ -609,11 +655,12 @@
                     });
                 }
 
-                // Show success
-                document.getElementById('auth-section').style.display = 'none';
+                // Update local state and show onboard option so conductor can immediately mark as onboard
+                ticketData.bookingStatus = 'confirmed';
                 document.getElementById('success-container').style.display = 'block';
-                document.getElementById('status-container').className = 'status confirmed';
-                document.getElementById('status-text').textContent = '✅ Confirmed';
+                document.getElementById('success-container').innerHTML = '<div class="success-message">✅ Ticket confirmed successfully! Ready for boarding.</div>';
+                // Show the onboard option
+                showConfirmedForOnboard();
 
             } catch (error) {
                 console.error('Error confirming ticket:', error);
@@ -622,6 +669,67 @@
                 const confirmBtn = document.getElementById('confirm-btn');
                 confirmBtn.disabled = false;
                 confirmBtn.textContent = 'Confirm Boarding';
+            }
+        }
+
+        // Mark ticket as onboard
+        async function markAsOnboard() {
+            const enteredPin = document.getElementById('conductor-pin-onboard').value;
+            
+            if (!enteredPin) {
+                alert('Please enter the conductor PIN');
+                return;
+            }
+
+            if (enteredPin !== CONDUCTOR_PIN) {
+                alert('Invalid PIN. Please contact your supervisor.');
+                return;
+            }
+
+            try {
+                // Ensure only confirmed tickets can be marked as onboard
+                if (!ticketData || ticketData.bookingStatus !== 'confirmed') {
+                    alert('Only tickets with status "confirmed" can be marked as onboard. Current status: ' + (ticketData ? ticketData.bookingStatus : 'unknown'));
+                    return;
+                }
+
+                const onboardBtn = document.getElementById('onboard-btn');
+                onboardBtn.disabled = true;
+                onboardBtn.textContent = 'Marking...';
+
+                // Check if this is demo/test mode
+                const urlParams = new URLSearchParams(window.location.search);
+                const isDemo = urlParams.get('demo') === 'true';
+                const isTest = urlParams.get('test') === 'true';
+
+                if (isDemo || isTest) {
+                    // Simulate onboard marking in demo mode
+                    console.log('Demo/Test mode onboard marking');
+                    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate delay
+                } else {
+                    // Real Firebase update - Set to 'onboard'
+                    console.log('Updating booking status to onboard for ID:', ticketId);
+                    await db.collection('bookings').doc(ticketId).update({
+                        bookingStatus: 'onboard',
+                        onboardAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        onboardBy: 'conductor'
+                    });
+                }
+
+                // Show success
+                document.getElementById('onboard-section').style.display = 'none';
+                document.getElementById('success-container').style.display = 'block';
+                document.getElementById('status-container').className = 'status confirmed';
+                document.getElementById('status-text').textContent = '✅ Onboard';
+                document.getElementById('success-container').innerHTML = '<div class="success-message">✅ Passenger marked as onboard successfully!</div>';
+
+            } catch (error) {
+                console.error('Error marking as onboard:', error);
+                alert('Error marking as onboard: ' + error.message + '. Please try again.');
+                
+                const onboardBtn = document.getElementById('onboard-btn');
+                onboardBtn.disabled = false;
+                onboardBtn.textContent = 'Mark as Onboard';
             }
         }
 
@@ -660,6 +768,13 @@
         document.getElementById('conductor-pin').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 confirmTicket();
+            }
+        });
+
+        // Allow Enter key to mark as onboard
+        document.getElementById('conductor-pin-onboard').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                markAsOnboard();
             }
         });
     </script>

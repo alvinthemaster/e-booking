@@ -166,33 +166,42 @@ class _VanDepartureCountdownWidgetState
   void _startCountdownTimer(Van van) {
     _countdownTimer?.cancel();
 
-    // Check if van has scheduled departure time
-    final vanDoc = _firestore.collection('vans').doc(van.id);
-    vanDoc.get().then((doc) {
-      if (doc.exists) {
-        final data = doc.data();
-        final scheduledDeparture = data?['scheduledDepartureTime'] as Timestamp?;
-
+    // Fetch van doc and compute departure time synchronously for initial value
+    () async {
+      try {
+        final vanDoc = await _firestore.collection('vans').doc(van.id).get();
         DateTime departureTime;
-        if (scheduledDeparture != null) {
-          departureTime = scheduledDeparture.toDate();
+
+        if (vanDoc.exists) {
+          final data = vanDoc.data();
+          final scheduledDeparture = data?['scheduledDepartureTime'] as Timestamp?;
+          if (scheduledDeparture != null) {
+            departureTime = scheduledDeparture.toDate();
+          } else {
+            departureTime = DateTime.now().add(const Duration(minutes: 15));
+          }
         } else {
-          // Default to 15 minutes from now if not set
           departureTime = DateTime.now().add(const Duration(minutes: 15));
         }
+
+        // Set initial time immediately so UI shows value at once
+        final initialDiff = departureTime.difference(DateTime.now());
+        setState(() {
+          _timeUntilDeparture = initialDiff.isNegative ? Duration.zero : initialDiff;
+        });
 
         // Send notification when timer starts (only once per van)
         if (!_hasNotifiedStart) {
           _hasNotifiedStart = true;
-          final timeDiff = departureTime.difference(DateTime.now());
-          final minutes = timeDiff.inMinutes;
-          final seconds = timeDiff.inSeconds % 60;
+          final minutes = initialDiff.inMinutes;
+          final seconds = initialDiff.inSeconds % 60;
+          final isBus = van.vehicleType.toLowerCase() == 'bus';
           NotificationService().showNotification(
-            title: '🚐 Your Van is Full!',
-            body: 'Van ${van.plateNumber} will depart in ${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')} minutes. Get ready!',
+            title: isBus ? '🚌 Your Bus is Full!' : '🚐 Your Van is Full!',
+            body: '${isBus ? 'Bus' : 'Van'} ${van.plateNumber} will depart in ${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')} minutes. Get ready!',
             payload: 'van_departure_${van.id}',
           );
-          debugPrint('🔔 VanWidget: Sent countdown start notification for van ${van.plateNumber} - Time: ${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}');
+          debugPrint('🔔 VanWidget: Sent countdown start notification for ${van.vehicleType} ${van.plateNumber} - Time: ${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}');
         }
 
         // Update countdown every second
@@ -203,17 +212,18 @@ class _VanDepartureCountdownWidgetState
           if (difference.isNegative) {
             // Time's up - send departure notification
             timer.cancel();
-            
+
             if (!_hasNotifiedEnd) {
               _hasNotifiedEnd = true;
+              final isBus = van.vehicleType.toLowerCase() == 'bus';
               NotificationService().showNotification(
-                title: '🚀 Van Departing Now!',
-                body: 'Van ${van.plateNumber} is leaving. Please board immediately!',
+                title: isBus ? '🚌 Bus Departing Now!' : '🚀 Van Departing Now!',
+                body: '${isBus ? 'Bus' : 'Van'} ${van.plateNumber} is leaving. Please board immediately!',
                 payload: 'van_departed_${van.id}',
               );
-              debugPrint('🔔 VanWidget: Sent countdown end notification for van ${van.plateNumber}');
+              debugPrint('🔔 VanWidget: Sent countdown end notification for ${van.vehicleType} ${van.plateNumber}');
             }
-            
+
             setState(() {
               _timeUntilDeparture = Duration.zero;
             });
@@ -223,8 +233,10 @@ class _VanDepartureCountdownWidgetState
             });
           }
         });
+      } catch (e) {
+        debugPrint('❌ VanWidget: Error starting countdown timer: $e');
       }
-    });
+    }();
   }
 
   String _formatDuration(Duration duration) {
@@ -291,8 +303,8 @@ class _VanDepartureCountdownWidgetState
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            '🚐 Your Van is Full!',
+                          Text(
+                            '${_fullVan!.vehicleType.toLowerCase() == 'bus' ? '🚌 Your Bus is Full!' : '🚐 Your Van is Full!'}',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 18,

@@ -560,6 +560,53 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
               // Action Buttons
               Row(
                 children: [
+                  if (booking.bookingStatus == BookingStatus.failed) ...[
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          // Show modal to pick a boarding van for rebooking
+                          final provider = Provider.of<BookingProvider>(context, listen: false);
+                          try {
+                            final vans = await provider.getBoardingVans(booking.routeId);
+                            if (vans.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No boarding vans available for rebooking')));
+                              return;
+                            }
+
+                            final Van? selected = await showModalBottomSheet<Van?>(
+                              context: context,
+                              builder: (ctx) {
+                                return ListView.builder(
+                                  itemCount: vans.length,
+                                  itemBuilder: (c, i) {
+                                    final v = vans[i];
+                                    return ListTile(
+                                      title: Text('${v.plateNumber} • ${v.driver.name}'),
+                                      subtitle: Text('Occupancy: ${v.currentOccupancy}/${v.capacity}'),
+                                      onTap: () => Navigator.of(c).pop(v),
+                                    );
+                                  },
+                                );
+                              },
+                            );
+
+                            if (selected != null) {
+                              final newId = await provider.rebookFailedBooking(booking, selected);
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Rebooked: $newId')));
+                            }
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Rebooking failed: $e')));
+                          }
+                        },
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('Rebook'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF2196F3),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
                   if (booking.paymentStatus == PaymentStatus.paid) ...[
                     Expanded(
                       child: OutlinedButton.icon(

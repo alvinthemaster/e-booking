@@ -112,7 +112,7 @@ void main() {
         totalAmount: 150.0,
         paymentMethod: 'GCash',
         paymentStatus: PaymentStatus.pending,
-        bookingStatus: BookingStatus.pending,
+        bookingStatus: BookingStatus.confirmed,
         // completion fields are null
       );
 
@@ -120,7 +120,7 @@ void main() {
       expect(booking.completedAt, isNull);
       expect(booking.completionReason, isNull);
       expect(booking.adminCompletion, isNull);
-      expect(booking.bookingStatus, equals(BookingStatus.pending));
+      expect(booking.bookingStatus, equals(BookingStatus.confirmed));
 
       // Serialization should handle null values
       final map = booking.toMap();

@@ -47,7 +47,12 @@ class FirebaseBookingService {
         totalAmount: booking.totalAmount,
         paymentMethod: booking.paymentMethod,
         paymentStatus: booking.paymentStatus, // Use the provided payment status
-        bookingStatus: BookingStatus.pending, // New bookings start as pending
+        // Determine initial booking status: pending if discounted, else confirmed
+        bookingStatus: ((booking.discountAmount != null && booking.discountAmount > 0) ||
+          (booking.passengerDetails != null &&
+              (booking.passengerDetails!['discountedSeats'] as List?)?.isNotEmpty == true))
+            ? BookingStatus.pending
+            : BookingStatus.confirmed,
         qrCodeData: _generateQRCode(bookingId),
         eTicketId: 'ET-${bookingId.substring(0, 8).toUpperCase()}',
         passengerDetails: booking.passengerDetails,
@@ -615,6 +620,17 @@ class FirebaseBookingService {
     }
   }
 
+  /// Get vans that are currently boarding and available for booking
+  Future<List<Van>> getBoardingVansForRoute(String routeId) async {
+    try {
+      final vans = await getVansByStatus('boarding');
+      return vans.where((v) => v.currentRouteId == routeId && v.canBook).toList();
+    } catch (e) {
+      print('❌ Error getting boarding vans for route: $e');
+      throw Exception('Failed to get boarding vans for route: $e');
+    }
+  }
+
   /// Update van occupancy
   Future<void> updateVanOccupancy(String vanId, int occupancy) async {
     try {
@@ -807,22 +823,38 @@ class FirebaseBookingService {
 
       WriteBatch batch = _firestore.batch();
       int completedCount = 0;
+      int failedCount = 0;
 
       for (QueryDocumentSnapshot bookingDoc in bookingsSnapshot.docs) {
-        // Mark booking as completed instead of cancelled
-        batch.update(bookingDoc.reference, {
-          'bookingStatus': BookingStatus.completed.name,
-          'completionReason': 'Trip completed by administrator',
-          'completedAt': FieldValue.serverTimestamp(),
-          'adminCompletion': true,
-        });
-        
-        completedCount++;
+        final bookingData = bookingDoc.data() as Map<String, dynamic>? ?? {};
+        final currentStatus = (bookingData['bookingStatus'] ?? '').toString();
+
+        if (currentStatus == BookingStatus.onboard.name) {
+          // Onboard passengers are marked as completed and preserved in trip history
+          batch.update(bookingDoc.reference, {
+            'bookingStatus': BookingStatus.completed.name,
+            'completionReason': 'Trip completed by administrator',
+            'completedAt': FieldValue.serverTimestamp(),
+            'adminCompletion': true,
+          });
+
+          completedCount++;
+        } else {
+          // Passengers who were not onboarded by trip completion are marked as failed
+          batch.update(bookingDoc.reference, {
+            'bookingStatus': BookingStatus.failed.name,
+            'completionReason': 'Trip completed: passenger not onboard',
+            'failedAt': FieldValue.serverTimestamp(),
+            'adminCompletion': true,
+          });
+
+          failedCount++;
+        }
       }
 
-      if (completedCount > 0) {
+      if (completedCount + failedCount > 0) {
         await batch.commit();
-        debugPrint('📋 Marked $completedCount bookings as completed for van ${van.plateNumber} - trip history preserved');
+        debugPrint('📋 Marked $completedCount bookings as completed and $failedCount bookings as failed for van ${van.plateNumber} - trip history preserved');
       } else {
         debugPrint('📋 No active bookings found to complete for van ${van.plateNumber}');
       }

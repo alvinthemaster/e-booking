@@ -84,17 +84,24 @@ class VanFullNotificationService {
           );
         }
 
-        // Update van with departure time in Firestore
+
+        // Update van with departure time in Firestore and mark departure timer active
         await _firestore.collection('vans').doc(vanId).update({
           'scheduledDepartureTime': Timestamp.fromDate(departureTime),
           'notificationSent': true,
+          'departureTimerActive': true,
         });
 
-        // Show immediate notification to all users
+        // Show immediate notification to all users (message tailored for bus/van)
+        final isBus = van.vehicleType.toLowerCase() == 'bus';
+        final immediateTitle = isBus ? '🚌 Bus is Full!' : '🚐 Van is Full!';
+        final immediateBody = isBus
+            ? 'Bus ${van.plateNumber} is full and will depart in 15 minutes. Please proceed to the boarding area.'
+            : 'Van ${van.plateNumber} is full and will depart in 15 minutes. Please proceed to the boarding area.';
+
         await _notificationService.showNotification(
-          title: '🚐 Van is Full!',
-          body:
-              'Van ${van.plateNumber} is full and will depart in 15 minutes. Please proceed to the boarding area.',
+          title: immediateTitle,
+          body: immediateBody,
         );
 
         debugPrint(

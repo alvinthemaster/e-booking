@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'screens/home_screen.dart';
 import 'screens/profile_screen.dart';
+import 'screens/van_rental_requests_screen.dart';
 import 'providers/booking_provider.dart';
 import 'providers/seat_provider.dart';
 import 'providers/payment_provider.dart';
@@ -108,6 +109,7 @@ class GodtrascoApp extends StatelessWidget {
               '/home': (context) => const HomeScreen(),
               '/sign-in': (context) => const SignInScreen(),
               '/profile': (context) => const ProfileScreen(),
+              '/van_rental_requests': (context) => const VanRentalRequestsScreen(),
             },
             // Show sign-in screen if not authenticated, otherwise show home with booking listener
             home: authProvider.isAuthenticated

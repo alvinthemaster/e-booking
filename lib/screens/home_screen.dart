@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'seat_selection_screen.dart';
 import 'booking_history_screen.dart';
+import 'van_rental_requests_screen.dart';
 import '../providers/booking_provider.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/firestore_debugger.dart';
@@ -19,7 +20,11 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
 
-  final List<Widget> _screens = [const HomeTab(), const BookingHistoryScreen()];
+  final List<Widget> _screens = [
+    const HomeTab(),
+    const BookingHistoryScreen(),
+    const VanRentalRequestsScreen(),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -55,6 +60,10 @@ class _HomeScreenState extends State<HomeScreen> {
             BottomNavigationBarItem(
               icon: Icon(Icons.history),
               label: 'Bookings',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.directions_bus),
+              label: 'Van Rentals',
             ),
           ],
         ),

@@ -1,782 +1,949 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GODTRASCO E-Ticket Confirmation</title>
+    <title>GODTRASCO – Ticket Confirmation</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #2196F3 0%, #1565C0 100%);
             min-height: 100vh;
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             justify-content: center;
-            padding: 20px;
+            padding: 24px 16px 40px;
         }
 
-        .container {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            padding: 30px;
-            max-width: 400px;
+        .page-wrap {
             width: 100%;
+            max-width: 440px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
         }
 
-        .logo {
-            text-align: center;
-            margin-bottom: 30px;
-        }
+        /* LOGO */
+        .logo { text-align: center; padding: 8px 0 4px; }
+        .logo h1 { color: #fff; font-size: 22px; font-weight: 800; letter-spacing: 1px; }
+        .logo p  { color: rgba(255,255,255,0.75); font-size: 13px; margin-top: 3px; }
 
-        .logo h1 {
+        /* LOADING */
+        .loading { display: none; text-align: center; padding: 32px 0; }
+        .spinner {
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            width: 36px; height: 36px;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 12px;
+        }
+        .loading p { color: #fff; font-size: 14px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ERROR */
+        .error-box {
+            background: #fff;
+            border-radius: 16px;
+            padding: 24px;
+            border-left: 5px solid #F44336;
+            display: none;
+        }
+        .error-box h3 { color: #F44336; margin-bottom: 10px; }
+        .error-box p  { color: #555; font-size: 14px; line-height: 1.6; }
+        .demo-links { margin-top: 16px; }
+        .demo-link {
+            display: block;
+            padding: 10px 14px;
+            background: #f5f5f5;
+            border-radius: 8px;
             color: #2196F3;
-            font-size: 24px;
-            font-weight: bold;
+            text-decoration: none;
+            font-size: 13px;
+            margin-bottom: 8px;
         }
 
-        .logo p {
-            color: #666;
-            font-size: 14px;
-            margin-top: 5px;
+        /* TICKET CARD */
+        .ticket-card {
+            background: #fff;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+            display: none;
         }
 
-        .ticket-info {
+        /* Card header */
+        .card-header { padding: 20px 22px 18px; color: #fff; }
+        .card-header.blue   { background: linear-gradient(135deg, #2196F3, #1565C0); }
+        .card-header.orange { background: linear-gradient(135deg, #FF9800, #E65100); }
+
+        .card-header-row { display: flex; align-items: center; gap: 14px; }
+        .card-header-icon {
+            width: 48px; height: 48px;
+            background: rgba(255,255,255,0.18);
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 26px; flex-shrink: 0;
+        }
+        .card-header-title { font-size: 18px; font-weight: 800; }
+        .card-header-sub   { font-size: 12px; opacity: 0.8; margin-top: 2px; }
+        .card-header-ref   {
+            margin-top: 12px;
+            font-family: monospace;
+            font-size: 13px;
+            opacity: 0.9;
+            font-weight: 600;
+        }
+
+        /* Card body */
+        .card-body { padding: 20px 22px; }
+        .section { margin-bottom: 18px; }
+        .section:last-child { margin-bottom: 0; }
+
+        /* Route box */
+        .route-box {
             background: #f8f9fa;
             border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
+        .route-end { flex: 1; }
+        .route-end.right { text-align: right; }
+        .route-label { font-size: 10px; color: #999; font-weight: 600; text-transform: uppercase; margin-bottom: 3px; }
+        .route-city  { font-size: 15px; font-weight: 700; color: #222; }
+        .route-arrow       { font-size: 18px; color: #2196F3; flex-shrink: 0; }
+        .route-arrow.orange { color: #FF9800; }
 
-        .ticket-info h2 {
-            color: #333;
-            font-size: 18px;
-            margin-bottom: 15px;
-            text-align: center;
-        }
-
+        /* Info rows */
         .info-row {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
+            padding: 9px 0;
+            border-bottom: 1px solid #f0f0f0;
+            gap: 12px;
+        }
+        .info-row:last-child { border-bottom: none; padding-bottom: 0; }
+        .info-label { font-size: 13px; font-weight: 600; color: #666; white-space: nowrap; }
+        .info-value { font-size: 13px; color: #222; text-align: right; word-break: break-word; }
+
+        /* Two-column sender/receiver */
+        .two-col { display: flex; gap: 10px; }
+        .two-col-box {
+            flex: 1;
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 11px 12px;
+        }
+        .two-col-label   { font-size: 10px; color: #999; font-weight: 600; margin-bottom: 4px; text-transform: uppercase; }
+        .two-col-name    { font-size: 14px; font-weight: 700; color: #222; margin-bottom: 2px; }
+        .two-col-contact { font-size: 12px; color: #666; }
+
+        /* Payment box */
+        .payment-box {
+            background: #f0f7ff;
+            border-radius: 12px;
+            padding: 14px 16px;
+        }
+        .payment-box.orange-bg { background: #fff8f0; }
+        .payment-title {
+            font-size: 13px; font-weight: 700;
+            color: #2196F3; margin-bottom: 10px;
+        }
+        .payment-title.orange { color: #FF9800; }
+        .pay-row {
+            display: flex; justify-content: space-between;
+            font-size: 13px; margin-bottom: 7px; color: #444;
+        }
+        .pay-row:last-child { margin-bottom: 0; }
+        .pay-divider { border: none; border-top: 1px dashed #ccc; margin: 10px 0; }
+        .pay-total-row {
+            display: flex; justify-content: space-between;
+            font-size: 16px; font-weight: 800; color: #2196F3;
+        }
+        .pay-total-row.orange { color: #FF9800; }
+        .pay-method-row {
+            display: flex; justify-content: space-between;
+            align-items: center; margin-top: 10px;
+            padding-top: 10px; border-top: 1px solid #e0e0e0;
+        }
+        .pay-method-label { font-size: 11px; color: #999; }
+        .pay-method-value { font-size: 13px; font-weight: 600; color: #333; }
+        .pay-status-badge {
+            display: inline-block;
+            padding: 3px 10px; border-radius: 20px;
+            font-size: 11px; font-weight: 700;
+        }
+        .pay-status-badge.paid    { background: #e8f5e9; color: #2E7D32; border: 1px solid #a5d6a7; }
+        .pay-status-badge.unpaid  { background: #fff3e0; color: #E65100; border: 1px solid #ffcc80; }
+
+        /* Dashed divider */
+        .dashed-divider { border: none; border-top: 2px dashed #e0e0e0; margin: 18px 0; }
+
+        /* Status strip */
+        .status-strip {
+            border-radius: 10px; padding: 12px 16px;
+            font-size: 14px; font-weight: 700;
+            text-align: center; margin-bottom: 18px;
+        }
+        .status-strip.pending { background: #fff3cd; color: #856404; border: 1px solid #ffc107; }
+        .status-strip.success { background: #e8f5e9; color: #1B5E20; border: 1px solid #81C784; }
+        .status-strip.transit { background: #e3f2fd; color: #0D47A1; border: 1px solid #90CAF9; }
+        .status-strip.danger  { background: #fce4ec; color: #880E4F; border: 1px solid #F48FB1; }
+
+        /* PIN + action */
+        .pin-section { margin-top: 6px; }
+        .pin-label {
+            font-size: 13px; font-weight: 600; color: #555;
+            margin-bottom: 6px; display: block;
+        }
+        .pin-input {
+            width: 100%; padding: 13px 14px;
+            border: 2px solid #e0e0e0; border-radius: 10px;
+            font-size: 18px; letter-spacing: 4px;
+            margin-bottom: 12px;
+            transition: border-color 0.2s;
+        }
+        .pin-input:focus       { outline: none; border-color: #2196F3; }
+        .pin-input.orange:focus { border-color: #FF9800; }
+
+        .action-btn {
+            width: 100%; padding: 15px;
+            border: none; border-radius: 10px;
+            font-size: 15px; font-weight: 700;
+            cursor: pointer; transition: opacity 0.2s;
+            color: #fff; letter-spacing: 0.3px;
+        }
+        .action-btn:hover    { opacity: 0.88; }
+        .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .action-btn.blue   { background: #2196F3; }
+        .action-btn.green  { background: #4CAF50; }
+        .action-btn.orange { background: #FF9800; }
+
+        .success-msg {
+            background: #e8f5e9; color: #1B5E20;
+            border: 1px solid #81C784;
+            border-radius: 10px; padding: 13px;
+            font-size: 14px; font-weight: 600;
+            text-align: center; margin-top: 14px;
+        }
+
+        .section-label {
+            font-size: 11px; font-weight: 700; color: #999;
+            text-transform: uppercase; letter-spacing: 0.8px;
             margin-bottom: 10px;
-            padding: 8px 0;
-            border-bottom: 1px solid #e9ecef;
-        }
-
-        .info-row:last-child {
-            border-bottom: none;
-            margin-bottom: 0;
-        }
-
-        .info-label {
-            font-weight: 600;
-            color: #555;
-        }
-
-        .info-value {
-            color: #333;
-            text-align: right;
-        }
-
-        .status {
-            text-align: center;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-weight: 600;
-        }
-
-        .status.pending {
-            background: #fff3cd;
-            color: #856404;
-            border: 1px solid #ffeaa7;
-        }
-
-        .status.confirmed {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .status.error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
-        .auth-section {
-            margin-top: 20px;
-        }
-
-        .input-group {
-            margin-bottom: 15px;
-        }
-
-        .input-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 600;
-            color: #555;
-        }
-
-        .input-group input {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e9ecef;
-            border-radius: 8px;
-            font-size: 16px;
-            transition: border-color 0.3s;
-        }
-
-        .input-group input:focus {
-            outline: none;
-            border-color: #2196F3;
-        }
-
-        .btn {
-            width: 100%;
-            padding: 14px;
-            background: #2196F3;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-
-        .btn:hover {
-            background: #1976D2;
-        }
-
-        .btn:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-        }
-
-        .loading {
-            display: none;
-            text-align: center;
-            margin: 20px 0;
-        }
-
-        .spinner {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #2196F3;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .error-message {
-            background: #f8d7da;
-            color: #721c24;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        .success-message {
-            background: #d4edda;
-            color: #155724;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        @media (max-width: 480px) {
-            .container {
-                padding: 20px;
-                margin: 10px;
-            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="logo">
-            <h1>GODTRASCO</h1>
-            <p>E-Ticket Confirmation</p>
+<div class="page-wrap">
+
+    <!-- LOGO -->
+    <div class="logo">
+        <h1>GODTRASCO</h1>
+        <p id="page-subtitle">E-Ticket Confirmation</p>
+    </div>
+
+    <!-- LOADING -->
+    <div id="loading" class="loading">
+        <div class="spinner"></div>
+        <p>Loading ticket information…</p>
+    </div>
+
+    <!-- ERROR -->
+    <div id="error-container" class="error-box">
+        <h3>⚠️ Error</h3>
+        <p id="error-message">An error occurred.</p>
+        <div class="demo-links" id="demo-links" style="display:none;">
+            <div style="font-size:13px;font-weight:600;color:#555;margin-bottom:8px;">Try a demo:</div>
+            <a class="demo-link" href="?demo=true">🎫 Demo – Normal Booking</a>
+            <a class="demo-link" href="?demo=delivery">📦 Demo – Document Delivery</a>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         NORMAL BOOKING
+    ═══════════════════════════════════════════════════════ -->
+    <div id="ticket-container" class="ticket-card">
+
+        <div class="card-header blue">
+            <div class="card-header-row">
+                <div class="card-header-icon">🎫</div>
+                <div>
+                    <div class="card-header-title">GODTRASCO</div>
+                    <div class="card-header-sub">Passenger E-Ticket</div>
+                </div>
+            </div>
+            <div class="card-header-ref" id="booking-ref">Ref: —</div>
         </div>
 
-        <div id="loading" class="loading">
-            <div class="spinner"></div>
-            <p>Loading ticket information...</p>
-        </div>
+        <div class="card-body">
 
-        <div id="error-container" style="display: none;">
-            <div class="error-message" id="error-message"></div>
-        </div>
-
-        <div id="ticket-container" style="display: none;">
-            <div class="ticket-info">
-                <h2>Passenger Information</h2>
+            <!-- Passenger -->
+            <div class="section">
+                <div class="section-label">Passenger</div>
                 <div class="info-row">
-                    <span class="info-label">Passenger:</span>
-                    <span class="info-value" id="passenger-name">-</span>
+                    <span class="info-label">Name</span>
+                    <span class="info-value" id="passenger-name">—</span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label">Seat Number:</span>
-                    <span class="info-value" id="seat-number">-</span>
+                    <span class="info-label">Seat(s)</span>
+                    <span class="info-value" id="seat-number">—</span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label">Route:</span>
-                    <span class="info-value" id="route-info">-</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Van:</span>
-                    <span class="info-value" id="van-info">-</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Date:</span>
-                    <span class="info-value" id="booking-date">-</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Booking ID:</span>
-                    <span class="info-value" id="booking-id">-</span>
+                    <span class="info-label">Departure</span>
+                    <span class="info-value" id="booking-date">—</span>
                 </div>
             </div>
 
-            <div class="ticket-info" style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); border-left: 4px solid #2196F3;">
-                <h2 style="color: #2196F3;">💳 Payment Summary</h2>
-                <div id="payment-details">
-                    <!-- Payment details will be populated here -->
+            <!-- Route -->
+            <div class="section">
+                <div class="section-label">Route</div>
+                <div class="route-box">
+                    <div class="route-end">
+                        <div class="route-label">From</div>
+                        <div class="route-city" id="route-origin">—</div>
+                    </div>
+                    <div class="route-arrow">→</div>
+                    <div class="route-end right">
+                        <div class="route-label">To</div>
+                        <div class="route-city" id="route-destination">—</div>
+                    </div>
                 </div>
             </div>
 
-            <div class="status" id="status-container">
-                <span id="status-text">Pending Confirmation</span>
+            <!-- Van -->
+            <div class="section">
+                <div class="info-row" style="border-bottom:none;padding:0;">
+                    <span class="info-label">🚐 Van / Driver</span>
+                    <span class="info-value" id="van-info">—</span>
+                </div>
             </div>
 
-            <div id="auth-section" class="auth-section">
-                <div class="input-group">
-                    <label for="conductor-pin">Conductor PIN:</label>
-                    <input type="password" id="conductor-pin" placeholder="Enter conductor PIN" maxlength="6">
+            <hr class="dashed-divider">
+
+            <!-- Payment -->
+            <div class="section">
+                <div class="payment-box">
+                    <div class="payment-title">💳 Payment Summary</div>
+                    <div id="payment-details"></div>
                 </div>
-                <button class="btn" id="confirm-btn" onclick="confirmTicket()">
+            </div>
+
+            <hr class="dashed-divider">
+
+            <!-- Status -->
+            <div class="status-strip pending" id="status-container">
+                <span id="status-text">⏳ Pending Confirmation</span>
+            </div>
+
+            <!-- Confirm boarding -->
+            <div id="auth-section" class="pin-section">
+                <label class="pin-label">Conductor PIN</label>
+                <input type="password" class="pin-input" id="conductor-pin"
+                       placeholder="● ● ● ● ● ●" maxlength="6">
+                <button class="action-btn blue" id="confirm-btn" onclick="confirmTicket()">
                     Confirm Boarding
                 </button>
             </div>
 
-            <div id="onboard-section" class="auth-section" style="display: none;">
-                <div class="input-group">
-                    <label for="conductor-pin-onboard">Conductor PIN:</label>
-                    <input type="password" id="conductor-pin-onboard" placeholder="Enter conductor PIN" maxlength="6">
-                </div>
-                <button class="btn" id="onboard-btn" onclick="markAsOnboard()" style="background: #4CAF50;">
-                    Mark as Onboard
+            <!-- Mark as onboard -->
+            <div id="onboard-section" class="pin-section" style="display:none;">
+                <label class="pin-label">Conductor PIN</label>
+                <input type="password" class="pin-input" id="conductor-pin-onboard"
+                       placeholder="● ● ● ● ● ●" maxlength="6">
+                <button class="action-btn green" id="onboard-btn" onclick="markAsOnboard()">
+                    ✅ Mark as Onboard
                 </button>
             </div>
 
-            <div id="success-container" style="display: none;">
-                <div class="success-message">
-                    ✅ Ticket confirmed successfully! Passenger is now onboard.
+            <div id="success-container" style="display:none;"></div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         DOCUMENT DELIVERY
+    ═══════════════════════════════════════════════════════ -->
+    <div id="delivery-container" class="ticket-card">
+
+        <div class="card-header orange">
+            <div class="card-header-row">
+                <div class="card-header-icon">📦</div>
+                <div>
+                    <div class="card-header-title">GODTRASCO</div>
+                    <div class="card-header-sub">Document Delivery</div>
                 </div>
+            </div>
+            <div class="card-header-ref" id="d-ref">Ref: —</div>
+        </div>
+
+        <div class="card-body">
+
+            <!-- Route -->
+            <div class="section">
+                <div class="section-label">Route</div>
+                <div class="route-box">
+                    <div class="route-end">
+                        <div class="route-label">From</div>
+                        <div class="route-city" id="d-origin">—</div>
+                    </div>
+                    <div class="route-arrow orange">→</div>
+                    <div class="route-end right">
+                        <div class="route-label">To</div>
+                        <div class="route-city" id="d-destination">—</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sender / Receiver -->
+            <div class="section">
+                <div class="section-label">Sender → Receiver</div>
+                <div class="two-col">
+                    <div class="two-col-box">
+                        <div class="two-col-label">📤 Sender</div>
+                        <div class="two-col-name"    id="d-sender-name">—</div>
+                        <div class="two-col-contact" id="d-sender-contact">—</div>
+                    </div>
+                    <div class="two-col-box">
+                        <div class="two-col-label">📥 Receiver</div>
+                        <div class="two-col-name"    id="d-receiver-name">—</div>
+                        <div class="two-col-contact" id="d-receiver-contact">—</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Document details -->
+            <div class="section">
+                <div class="section-label">Document Details</div>
+                <div class="info-row">
+                    <span class="info-label">📄 Type</span>
+                    <span class="info-value" id="d-doc-type">—</span>
+                </div>
+                <div class="info-row" id="d-note-row" style="display:none;">
+                    <span class="info-label">📝 Note</span>
+                    <span class="info-value" id="d-note">—</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">🗓 Date</span>
+                    <span class="info-value" id="d-date">—</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">🚐 Van / Driver</span>
+                    <span class="info-value" id="d-van">—</span>
+                </div>
+            </div>
+
+            <hr class="dashed-divider">
+
+            <!-- Fee summary -->
+            <div class="section">
+                <div class="payment-box orange-bg">
+                    <div class="payment-title orange">💳 Fee Summary</div>
+                    <div class="pay-row">
+                        <span>Delivery Fee</span>
+                        <span>₱100.00</span>
+                    </div>
+                    <div class="pay-row">
+                        <span>Booking Fee</span>
+                        <span>₱15.00</span>
+                    </div>
+                    <hr class="pay-divider">
+                    <div class="pay-total-row orange">
+                        <span>Total</span>
+                        <span id="d-total">₱115.00</span>
+                    </div>
+                    <div class="pay-method-row">
+                        <div>
+                            <div class="pay-method-label">Payment Method</div>
+                            <div class="pay-method-value" id="d-payment-method">—</div>
+                        </div>
+                        <span class="pay-status-badge unpaid" id="d-payment-status-badge">⏳ Unpaid</span>
+                    </div>
+                </div>
+            </div>
+
+            <hr class="dashed-divider">
+
+            <!-- Status -->
+            <div class="status-strip pending" id="d-status-container">
+                <span id="d-status-text">Loading…</span>
+            </div>
+
+            <!-- Pickup PIN -->
+            <div id="d-pickup-section" class="pin-section" style="display:none;">
+                <label class="pin-label">Conductor PIN</label>
+                <input type="password" class="pin-input orange" id="d-conductor-pin-pickup"
+                       placeholder="● ● ● ● ● ●" maxlength="6">
+                <button class="action-btn orange" id="d-pickup-btn" onclick="confirmDeliveryPickup()">
+                    📦 Confirm Pickup (Mark In-Transit)
+                </button>
+            </div>
+
+            <!-- Delivered PIN -->
+            <div id="d-received-section" class="pin-section" style="display:none;">
+                <label class="pin-label">Conductor PIN</label>
+                <input type="password" class="pin-input orange" id="d-conductor-pin-received"
+                       placeholder="● ● ● ● ● ●" maxlength="6">
+                <button class="action-btn green" id="d-received-btn" onclick="confirmDeliveryReceived()">
+                    ✅ Confirm Delivered to Receiver
+                </button>
+            </div>
+
+            <div id="d-success-container" style="display:none;">
+                <div class="success-msg" id="d-success-text"></div>
             </div>
         </div>
     </div>
 
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
-    
-    <script>
-        // Firebase configuration - updated to match Flutter project
-        const firebaseConfig = {
-            apiKey: "AIzaSyAhHk9O4DDFKKSl4OKD5HrTPOUr2OdQOSk",
-            authDomain: "e-ticket-2e8d0.firebaseapp.com",
-            projectId: "e-ticket-2e8d0",
-            storageBucket: "e-ticket-2e8d0.firebasestorage.app",
-            messagingSenderId: "1065852861",
-            appId: "1:1065852861:web:7c76ecdb4c61a5f80c7f7e"
-        };
+</div><!-- /.page-wrap -->
 
-        // Initialize Firebase with better error handling
-        let db;
-        let isFirebaseReady = false;
-        
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyAhHk9O4DDFKKSl4OKD5HrTPOUr2OdQOSk",
+        authDomain: "e-ticket-2e8d0.firebaseapp.com",
+        projectId: "e-ticket-2e8d0",
+        storageBucket: "e-ticket-2e8d0.firebasestorage.app",
+        messagingSenderId: "1065852861",
+        appId: "1:1065852861:web:7c76ecdb4c61a5f80c7f7e"
+    };
+
+    let db, isFirebaseReady = false;
+    try {
+        firebase.initializeApp(firebaseConfig);
+        db = firebase.firestore();
+        isFirebaseReady = true;
+        db.enableNetwork().catch(() => {});
+    } catch (e) {
+        console.error('Firebase init failed:', e);
+    }
+
+    const CONDUCTOR_PIN = '123456';
+    let ticketData = null, ticketId = null;
+    let deliveryData = null, deliveryDocId = null;
+
+    // Document type label map (matches Dart DocumentType enum toString)
+    // Keys match Dart DocumentType enum .name values stored in Firestore
+    const DOC_TYPE_LABELS = {
+        envelope:     'Envelope',
+        legalDocument:'Legal Document',
+        id:           'ID / Government Document',
+        parcel:       'Parcel / Package',
+        other:        'Other',
+        // legacy fallbacks for older stored values
+        contract:     'Contract',
+        certificate:  'Certificate',
+        idDocument:   'ID Document',
+        package:      'Package',
+        id_document:  'ID Document',
+    };
+
+    function getDocTypeLabel(raw) {
+        if (!raw) return '—';
+        return DOC_TYPE_LABELS[raw] || raw.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ')
+               .replace(/\b\w/g, c => c.toUpperCase()).trim();
+    }
+
+    function getTicketIdFromUrl() {
+        return new URLSearchParams(window.location.search).get('id');
+    }
+
+    function showError(msg) {
+        document.getElementById('loading').style.display = 'none';
+        const box = document.getElementById('error-container');
+        box.style.display = 'block';
+        document.getElementById('error-message').innerHTML = msg;
+    }
+
+    // ── ENTRY POINT ────────────────────────────────────────────────────
+    async function loadTicketInfo() {
+        ticketId = getTicketIdFromUrl();
+        const urlParams = new URLSearchParams(window.location.search);
+        const isDemo = urlParams.get('demo');
+
+        if (isDemo === 'true' || isDemo === 'booking') { loadDemoBooking(); return; }
+        if (isDemo === 'delivery')                      { loadDemoDelivery(); return; }
+
+        if (!ticketId) {
+            showError('<strong>No ticket ID provided.</strong><br>Scan a valid QR code from the GODTRASCO app.');
+            document.getElementById('demo-links').style.display = 'block';
+            return;
+        }
+
+        if (ticketId.startsWith('DELIVERY:')) {
+            await loadDeliveryInfo(ticketId.substring('DELIVERY:'.length));
+            return;
+        }
+
+        // Normal booking
+        document.getElementById('loading').style.display = 'block';
         try {
-            console.log('Initializing Firebase...');
-            firebase.initializeApp(firebaseConfig);
-            db = firebase.firestore();
-            isFirebaseReady = true;
-            console.log('Firebase initialized successfully');
-            
-            // Test Firebase connection
-            db.enableNetwork().then(() => {
-                console.log('Firebase Firestore network enabled');
-            }).catch((error) => {
-                console.warn('Firebase network enable failed:', error);
-            });
-            
-        } catch (error) {
-            console.error('Firebase initialization failed:', error);
-            isFirebaseReady = false;
-        }
-
-        // Conductor PIN (in production, this should be more secure)
-        const CONDUCTOR_PIN = '123456';
-
-        let ticketData = null;
-        let ticketId = null;
-
-        // Get ticket ID from URL
-        function getTicketIdFromUrl() {
-            const urlParams = new URLSearchParams(window.location.search);
-            return urlParams.get('id');
-        }
-
-        // Load ticket information
-        async function loadTicketInfo() {
-            ticketId = getTicketIdFromUrl();
-            
-            // Check for demo mode
-            const urlParams = new URLSearchParams(window.location.search);
-            const isDemo = urlParams.get('demo') === 'true';
-            const isTest = urlParams.get('test') === 'true';
-            
-            if (isDemo || isTest) {
-                console.log('Demo/Test mode activated');
-                // Show demo ticket data
-                const demoData = {
-                    passengerDetails: { 
-                        name: 'Juan Dela Cruz',
-                        email: 'juan@example.com',
-                        phone: '+63 912 345 6789',
-                        regularSeats: ['L1A'],
-                        discountedSeats: ['L1B']
-                    },
-                    userName: 'Juan Dela Cruz',
-                    seatIds: ['L1A', 'L1B'],
-                    origin: 'General Santos',
-                    destination: 'Glan',
-                    vanPlateNumber: 'ABC-1234',
-                    vanDriverName: 'Pedro Santos',
-                    departureTime: { seconds: Date.now() / 1000 },
-                    eTicketId: 'ET-DEMO123',
-                    bookingStatus: 'confirmed',
-                    basePrice: 280.00,
-                    discountAmount: 20.00,
-                    totalAmount: 295.00
-                };
-                ticketData = demoData;
-                // Compute initial status for demo based on discounts
-                const demoHasDiscount = (demoData.discountAmount && demoData.discountAmount > 0) ||
-                    (demoData.passengerDetails && demoData.passengerDetails.discountedSeats && demoData.passengerDetails.discountedSeats.length > 0);
-                demoData.bookingStatus = demoHasDiscount ? 'pending' : 'confirmed';
-
-                displayTicketInfo(demoData);
-                // For demo/test mode, show appropriate UI based on computed status
-                if (isDemo || isTest) {
-                    if (demoData.bookingStatus === 'confirmed') {
-                        document.getElementById('status-text').textContent = 'Demo Mode - Confirmed (Ready for Onboard)';
-                        showConfirmedForOnboard();
-                    } else {
-                        document.getElementById('status-text').textContent = 'Demo Mode - Pending Confirmation';
-                    }
+            if (!isFirebaseReady) throw new Error('Firebase not initialized');
+            const snap = await db.collection('bookings').doc(ticketId).get();
+            if (!snap.exists) {
+                // Fallback: maybe the DELIVERY: prefix was stripped — try document_deliveries
+                const deliveryFallback = await db.collection('document_deliveries').doc(ticketId).get();
+                if (deliveryFallback.exists) {
+                    deliveryDocId  = ticketId;
+                    deliveryData   = deliveryFallback.data();
+                    renderDeliveryTicket(deliveryData);
+                    return;
                 }
+                showError('Booking not found. This QR code may be invalid or expired.');
                 return;
             }
-            
-            if (!ticketId) {
-                showError('No ticket ID provided. Please scan a valid QR code to access this page.');
-                // Add demo/test information
-                document.getElementById('error-message').innerHTML = `
-                    <strong>No ticket ID provided</strong><br><br>
-                    
-                    <div style="margin: 16px 0;">
-                        <strong>Test Options:</strong><br>
-                        <a href="${window.location.origin}?demo=true" style="color: #2196F3; text-decoration: none; display: block; margin: 8px 0;">
-                            🎯 Demo Mode - Sample ticket data
-                        </a>
-                        <a href="${window.location.origin}?test=true" style="color: #2196F3; text-decoration: none; display: block; margin: 8px 0;">
-                            🧪 Test Mode - Alternative sample data
-                        </a>
-                    </div>
-                    
-                    <div style="margin: 16px 0;">
-                        <strong>Real Usage:</strong><br>
-                        Use with a real booking ID:<br>
-                        <code style="background: #f0f0f0; padding: 4px; border-radius: 4px; font-size: 12px;">
-                            ${window.location.origin}?id=YOUR_BOOKING_ID
-                        </code><br>
-                        Or scan a QR code from the GODTRASCO app.
-                    </div>
-                `;
-                return;
-            }
-
-            try {
-                console.log('Loading ticket with ID:', ticketId);
-                document.getElementById('loading').style.display = 'block';
-                
-                // Check if Firebase is initialized and ready
-                if (!isFirebaseReady || !db) {
-                    throw new Error('Firebase not properly initialized');
-                }
-                
-                console.log('Firebase is ready, attempting to fetch booking...');
-                
-                // Get booking from Firestore (using booking ID)
-                console.log('Fetching booking from Firestore collection: bookings, document:', ticketId);
-                const bookingDoc = await db.collection('bookings').doc(ticketId).get();
-                
-                console.log('Booking document exists:', bookingDoc.exists);
-                console.log('Booking document data:', bookingDoc.data());
-                
-                if (!bookingDoc.exists) {
-                    showError('Booking not found. This QR code may be invalid or expired.');
-                    return;
-                }
-
-                ticketData = bookingDoc.data();
-                console.log('Loaded ticket data:', ticketData);
-                
-                // Check booking status and show appropriate UI
-                if (ticketData.bookingStatus === 'onboard' || ticketData.bookingStatus === 'completed') {
-                    console.log('Booking already processed with status:', ticketData.bookingStatus);
-                    showAlreadyProcessed(ticketData.bookingStatus);
-                    return;
-                } else if (ticketData.bookingStatus === 'confirmed') {
-                    console.log('Booking confirmed, showing onboard option');
-                    showConfirmedForOnboard();
-                    return;
-                } else {
-                    // For any other status (like pending from old bookings), show confirm option
-                    console.log('Booking pending or unknown status, showing confirm option');
-                    // Ensure the confirm UI is visible and onboard UI is hidden for pending bookings
-                    document.getElementById('auth-section').style.display = 'block';
-                    document.getElementById('onboard-section').style.display = 'none';
-                    document.getElementById('status-container').className = 'status pending';
-                    document.getElementById('status-text').textContent = '⏳ Pending Confirmation';
-                }
-
-                // Display ticket information
-                displayTicketInfo(ticketData);
-                console.log('Ticket information displayed successfully');
-                
-            } catch (error) {
-                console.error('Error loading ticket:', error);
-                console.error('Error details:', {
-                    message: error.message,
-                    code: error.code,
-                    stack: error.stack
-                });
-                
-                let errorMessage = 'Error loading ticket information: ' + error.message;
-                
-                // Provide specific error guidance
-                if (error.message.includes('permission') || error.message.includes('insufficient')) {
-                    errorMessage += '\n\nThis might be a permissions issue. The Firestore rules have been updated and should allow access.';
-                } else if (error.message.includes('not found')) {
-                    errorMessage += '\n\nThe booking ID might be invalid or the booking does not exist.';
-                } else if (error.message.includes('network') || error.message.includes('offline')) {
-                    errorMessage += '\n\nPlease check your internet connection and try again.';
-                }
-                
-                showError(errorMessage);
-            } finally {
-                document.getElementById('loading').style.display = 'none';
-            }
-        }
-
-        // Display ticket information
-        function displayTicketInfo(data) {
-            document.getElementById('passenger-name').textContent = data.passengerDetails?.name || data.userName || 'N/A';
-            document.getElementById('seat-number').textContent = data.seatIds?.join(', ') || 'N/A';
-            document.getElementById('route-info').textContent = `${data.origin || 'N/A'} → ${data.destination || 'N/A'}`;
-            document.getElementById('van-info').textContent = `${data.vanPlateNumber || 'N/A'} (${data.vanDriverName || 'N/A'})`;
-            document.getElementById('booking-date').textContent = data.departureTime ? new Date(data.departureTime.seconds * 1000).toLocaleDateString() : 'N/A';
-            document.getElementById('booking-id').textContent = data.eTicketId || ticketId;
-            
-            // Display payment summary
-            displayPaymentSummary(data);
-            
-            document.getElementById('ticket-container').style.display = 'block';
-        }
-
-        // Display payment summary with seat breakdown
-        function displayPaymentSummary(data) {
-            const paymentContainer = document.getElementById('payment-details');
-            const regularSeats = data.passengerDetails?.regularSeats || [];
-            const discountedSeats = data.passengerDetails?.discountedSeats || [];
-            const totalAmount = data.totalAmount || 0;
-            const discountAmount = data.discountAmount || 0;
-            const basePrice = data.basePrice || 0;
-            
-            let html = '';
-            
-            // Regular fare seats
-            if (regularSeats.length > 0) {
-                html += `
-                    <div class="info-row">
-                        <div style="flex: 1;">
-                            <div style="font-weight: 600; color: #555;">Regular Fare:</div>
-                            <div style="font-size: 12px; color: #888; margin-top: 2px;">${regularSeats.join(', ')}</div>
-                        </div>
-                        <span class="info-value">₱${(regularSeats.length * 150).toFixed(2)}</span>
-                    </div>
-                `;
-            }
-            
-            // Discounted fare seats
-            if (discountedSeats.length > 0) {
-                html += `
-                    <div class="info-row">
-                        <div style="flex: 1;">
-                            <div style="font-weight: 600; color: #555;">Discounted Fare:</div>
-                            <div style="font-size: 12px; color: #888; margin-top: 2px;">${discountedSeats.join(', ')} (PWD/Senior/Student)</div>
-                        </div>
-                        <span class="info-value">₱${(discountedSeats.length * 130).toFixed(2)}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Discount Applied:</span>
-                        <span class="info-value" style="color: #4CAF50; font-weight: 600;">-₱${(discountedSeats.length * 20).toFixed(2)}</span>
-                    </div>
-                `;
-            }
-            
-            // Fallback if no seat breakdown available
-            if (regularSeats.length === 0 && discountedSeats.length === 0) {
-                html += `
-                    <div class="info-row">
-                        <span class="info-label">Fare Subtotal:</span>
-                        <span class="info-value">₱${basePrice.toFixed(2)}</span>
-                    </div>
-                `;
-                
-                if (discountAmount > 0) {
-                    html += `
-                        <div class="info-row">
-                            <span class="info-label">Discount Applied:</span>
-                            <span class="info-value" style="color: #4CAF50; font-weight: 600;">-₱${discountAmount.toFixed(2)}</span>
-                        </div>
-                    `;
-                }
-            }
-            
-            // Booking fee
-            html += `
-                <div class="info-row">
-                    <span class="info-label">Booking Fee:</span>
-                    <span class="info-value">₱15.00</span>
-                </div>
-            `;
-            
-            // Total amount with separator
-            html += `
-                <div class="info-row" style="border-top: 2px solid #2196F3; margin-top: 8px; padding-top: 8px;">
-                    <span class="info-label" style="font-size: 16px; font-weight: bold; color: #2196F3;">Total Amount:</span>
-                    <span class="info-value" style="font-size: 18px; font-weight: bold; color: #2196F3;">₱${totalAmount.toFixed(2)}</span>
-                </div>
-            `;
-            
-            paymentContainer.innerHTML = html;
-        }
-
-        // Show error message
-        function showError(message) {
-            document.getElementById('error-message').textContent = message;
-            document.getElementById('error-container').style.display = 'block';
+            ticketData = snap.data();
+            renderBookingTicket(ticketData);
+        } catch (err) {
+            showError('Error loading ticket: ' + err.message);
+        } finally {
             document.getElementById('loading').style.display = 'none';
         }
+    }
 
-        // Show already processed status (onboard or completed)
-        function showAlreadyProcessed(status) {
-            displayTicketInfo(ticketData);
-            document.getElementById('status-container').className = 'status confirmed';
-            const statusText = status === 'completed' ? '✅ Trip Completed' : '✅ Already Onboard';
-            document.getElementById('status-text').textContent = statusText;
-            document.getElementById('auth-section').style.display = 'none';
-            document.getElementById('onboard-section').style.display = 'none';
+    // ── NORMAL BOOKING RENDER ──────────────────────────────────────────
+    function renderBookingTicket(data) {
+        document.getElementById('page-subtitle').textContent = 'Normal Booking Confirmation';
+        document.getElementById('booking-ref').textContent =
+            'Ref: ' + (data.eTicketId || (ticketId ? ticketId.substring(0,8).toUpperCase() : '—'));
+
+        $set('passenger-name', data.passengerDetails?.name || data.userName || '—');
+        $set('seat-number',    (data.seatIds || []).join(', ') || '—');
+        $set('booking-date',   data.departureTime
+            ? new Date(data.departureTime.seconds * 1000)
+                .toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' })
+            : '—');
+        $set('route-origin',      data.origin      || '—');
+        $set('route-destination', data.destination || '—');
+        $set('van-info',
+            [data.vanPlateNumber, data.vanDriverName].filter(Boolean).join(' · ') || '—');
+
+        renderPaymentSummary(data);
+        document.getElementById('ticket-container').style.display = 'block';
+
+        const status = data.bookingStatus || '';
+        if (status === 'onboard' || status === 'completed') {
+            setBookingStatus('success',
+                status === 'completed' ? '✅ Trip Completed' : '✅ Already Onboard');
+            hide('auth-section'); hide('onboard-section');
+        } else if (status === 'confirmed') {
+            showConfirmedForOnboard();
+        } else {
+            setBookingStatus('pending', '⏳ Pending Confirmation');
+            show('auth-section'); hide('onboard-section');
         }
+    }
 
-        // Show confirmed status with onboard option
-        function showConfirmedForOnboard() {
-            displayTicketInfo(ticketData);
-            document.getElementById('status-container').className = 'status confirmed';
-            document.getElementById('status-text').textContent = '✅ Confirmed - Ready for Boarding';
-            document.getElementById('auth-section').style.display = 'none';
-            document.getElementById('onboard-section').style.display = 'block';
+    function renderPaymentSummary(data) {
+        const cont = document.getElementById('payment-details');
+        const reg  = data.passengerDetails?.regularSeats    || [];
+        const disc = data.passengerDetails?.discountedSeats || [];
+        const totalAmount    = data.totalAmount    || 0;
+        const discountAmount = data.discountAmount || 0;
+        const basePrice      = data.basePrice      || 0;
+
+        let html = '';
+        if (reg.length > 0) {
+            html += payRow(
+                'Regular Fare <small style="color:#999">(' + reg.join(', ') + ')</small>',
+                '₱' + (reg.length * 150).toFixed(2));
         }
-
-        // Confirm ticket
-        async function confirmTicket() {
-            const enteredPin = document.getElementById('conductor-pin').value;
-            
-            if (!enteredPin) {
-                alert('Please enter the conductor PIN');
-                return;
-            }
-
-            if (enteredPin !== CONDUCTOR_PIN) {
-                alert('Invalid PIN. Please contact your supervisor.');
-                return;
-            }
-
-            try {
-                const confirmBtn = document.getElementById('confirm-btn');
-                confirmBtn.disabled = true;
-                confirmBtn.textContent = 'Confirming...';
-
-                // Check if this is demo/test mode
-                const urlParams = new URLSearchParams(window.location.search);
-                const isDemo = urlParams.get('demo') === 'true';
-                const isTest = urlParams.get('test') === 'true';
-
-                if (isDemo || isTest) {
-                    // Simulate confirmation in demo mode
-                    console.log('Demo/Test mode confirmation');
-                    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate delay
-                } else {
-                    // Real Firebase update - Set to 'confirmed' to lock the seat
-                    console.log('Updating booking status for ID:', ticketId);
-                    await db.collection('bookings').doc(ticketId).update({
-                        bookingStatus: 'confirmed', // Changed from 'onboard' to 'confirmed' to lock seat
-                        confirmedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                        confirmedBy: 'conductor'
-                    });
-                }
-
-                // Update local state and show onboard option so conductor can immediately mark as onboard
-                ticketData.bookingStatus = 'confirmed';
-                document.getElementById('success-container').style.display = 'block';
-                document.getElementById('success-container').innerHTML = '<div class="success-message">✅ Ticket confirmed successfully! Ready for boarding.</div>';
-                // Show the onboard option
-                showConfirmedForOnboard();
-
-            } catch (error) {
-                console.error('Error confirming ticket:', error);
-                alert('Error confirming ticket: ' + error.message + '. Please try again.');
-                
-                const confirmBtn = document.getElementById('confirm-btn');
-                confirmBtn.disabled = false;
-                confirmBtn.textContent = 'Confirm Boarding';
-            }
+        if (disc.length > 0) {
+            html += payRow(
+                'Discounted Fare <small style="color:#999">(' + disc.join(', ') + ')</small>',
+                '₱' + (disc.length * 130).toFixed(2));
+            html += payRow(
+                '<span style="color:#4CAF50">Discount Applied</span>',
+                '<span style="color:#4CAF50">-₱' + (disc.length * 20).toFixed(2) + '</span>');
         }
-
-        // Mark ticket as onboard
-        async function markAsOnboard() {
-            const enteredPin = document.getElementById('conductor-pin-onboard').value;
-            
-            if (!enteredPin) {
-                alert('Please enter the conductor PIN');
-                return;
-            }
-
-            if (enteredPin !== CONDUCTOR_PIN) {
-                alert('Invalid PIN. Please contact your supervisor.');
-                return;
-            }
-
-            try {
-                // Ensure only confirmed tickets can be marked as onboard
-                if (!ticketData || ticketData.bookingStatus !== 'confirmed') {
-                    alert('Only tickets with status "confirmed" can be marked as onboard. Current status: ' + (ticketData ? ticketData.bookingStatus : 'unknown'));
-                    return;
-                }
-
-                const onboardBtn = document.getElementById('onboard-btn');
-                onboardBtn.disabled = true;
-                onboardBtn.textContent = 'Marking...';
-
-                // Check if this is demo/test mode
-                const urlParams = new URLSearchParams(window.location.search);
-                const isDemo = urlParams.get('demo') === 'true';
-                const isTest = urlParams.get('test') === 'true';
-
-                if (isDemo || isTest) {
-                    // Simulate onboard marking in demo mode
-                    console.log('Demo/Test mode onboard marking');
-                    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate delay
-                } else {
-                    // Real Firebase update - Set to 'onboard'
-                    console.log('Updating booking status to onboard for ID:', ticketId);
-                    await db.collection('bookings').doc(ticketId).update({
-                        bookingStatus: 'onboard',
-                        onboardAt: firebase.firestore.FieldValue.serverTimestamp(),
-                        onboardBy: 'conductor'
-                    });
-                }
-
-                // Show success
-                document.getElementById('onboard-section').style.display = 'none';
-                document.getElementById('success-container').style.display = 'block';
-                document.getElementById('status-container').className = 'status confirmed';
-                document.getElementById('status-text').textContent = '✅ Onboard';
-                document.getElementById('success-container').innerHTML = '<div class="success-message">✅ Passenger marked as onboard successfully!</div>';
-
-            } catch (error) {
-                console.error('Error marking as onboard:', error);
-                alert('Error marking as onboard: ' + error.message + '. Please try again.');
-                
-                const onboardBtn = document.getElementById('onboard-btn');
-                onboardBtn.disabled = false;
-                onboardBtn.textContent = 'Mark as Onboard';
-            }
+        if (reg.length === 0 && disc.length === 0) {
+            html += payRow('Fare Subtotal', '₱' + basePrice.toFixed(2));
+            if (discountAmount > 0)
+                html += payRow(
+                    '<span style="color:#4CAF50">Discount</span>',
+                    '<span style="color:#4CAF50">-₱' + discountAmount.toFixed(2) + '</span>');
         }
+        html += payRow('Booking Fee', '₱15.00');
+        html += '<hr class="pay-divider">' +
+                '<div class="pay-total-row"><span>Total</span><span>₱' + totalAmount.toFixed(2) + '</span></div>';
 
-        // Initialize when page loads
-        window.addEventListener('load', function() {
-            console.log('Page loaded, starting initialization...');
-            
-            // Add debug info
+        if (data.paymentMethod) {
+            const paid = data.paymentStatus === 'paid';
+            html += '<div class="pay-method-row">' +
+                    '<div><div class="pay-method-label">Payment Method</div>' +
+                    '<div class="pay-method-value">' + data.paymentMethod + '</div></div>' +
+                    '<span class="pay-status-badge ' + (paid ? 'paid' : 'unpaid') + '">' +
+                    (paid ? '✅ Paid' : '⏳ Unpaid') + '</span></div>';
+        }
+        cont.innerHTML = html;
+    }
+
+    function payRow(label, value) {
+        return '<div class="pay-row"><span>' + label + '</span><span>' + value + '</span></div>';
+    }
+
+    function setBookingStatus(cls, txt) {
+        const el = document.getElementById('status-container');
+        el.className = 'status-strip ' + cls;
+        document.getElementById('status-text').textContent = txt;
+    }
+
+    function showConfirmedForOnboard() {
+        setBookingStatus('success', '✅ Confirmed – Ready for Boarding');
+        hide('auth-section');
+        show('onboard-section');
+    }
+
+    // ── NORMAL BOOKING ACTIONS ─────────────────────────────────────────
+    async function confirmTicket() {
+        const pin = document.getElementById('conductor-pin').value;
+        if (!pin)              { alert('Please enter the conductor PIN'); return; }
+        if (pin !== CONDUCTOR_PIN) { alert('Invalid PIN.'); return; }
+
+        const btn = document.getElementById('confirm-btn');
+        btn.disabled = true; btn.textContent = 'Confirming…';
+        try {
             const urlParams = new URLSearchParams(window.location.search);
-            const ticketId = urlParams.get('id');
-            const isDemo = urlParams.get('demo') === 'true';
-            
-            console.log('URL params:', { ticketId, isDemo });
-            console.log('Firebase available:', typeof firebase !== 'undefined');
-            
-            // Test Firebase connection if not in demo mode
-            if (!isDemo && !ticketId) {
-                console.log('Testing Firebase connection...');
-                if (isFirebaseReady && db) {
-                    // Test basic Firestore read access
-                    db.collection('routes').limit(1).get()
-                        .then((snapshot) => {
-                            console.log('Firebase test successful, found', snapshot.size, 'route documents');
-                        })
-                        .catch((error) => {
-                            console.error('Firebase test failed:', error);
-                        });
-                }
+            if (urlParams.get('demo')) {
+                await delay(600);
+            } else {
+                await db.collection('bookings').doc(ticketId).update({
+                    bookingStatus: 'confirmed',
+                    confirmedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    confirmedBy: 'conductor'
+                });
             }
-            
-            // Wait a bit for Firebase to fully load
-            setTimeout(loadTicketInfo, 100);
-        });
+            ticketData.bookingStatus = 'confirmed';
+            document.getElementById('success-container').innerHTML =
+                '<div class="success-msg">✅ Ticket confirmed! Ready for boarding.</div>';
+            show('success-container');
+            showConfirmedForOnboard();
+        } catch (err) {
+            alert('Error: ' + err.message);
+            btn.disabled = false;
+            btn.textContent = 'Confirm Boarding';
+        }
+    }
 
-        // Allow Enter key to confirm
-        document.getElementById('conductor-pin').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                confirmTicket();
-            }
-        });
+    async function markAsOnboard() {
+        const pin = document.getElementById('conductor-pin-onboard').value;
+        if (!pin)              { alert('Please enter the conductor PIN'); return; }
+        if (pin !== CONDUCTOR_PIN) { alert('Invalid PIN.'); return; }
+        if (!ticketData || ticketData.bookingStatus !== 'confirmed') {
+            alert('Ticket must be confirmed first.'); return;
+        }
 
-        // Allow Enter key to mark as onboard
-        document.getElementById('conductor-pin-onboard').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                markAsOnboard();
+        const btn = document.getElementById('onboard-btn');
+        btn.disabled = true; btn.textContent = 'Marking…';
+        try {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('demo')) {
+                await delay(600);
+            } else {
+                await db.collection('bookings').doc(ticketId).update({
+                    bookingStatus: 'onboard',
+                    onboardAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    onboardBy: 'conductor'
+                });
             }
-        });
-    </script>
+            ticketData.bookingStatus = 'onboard';
+            hide('onboard-section');
+            setBookingStatus('success', '✅ Onboard');
+            document.getElementById('success-container').innerHTML =
+                '<div class="success-msg">✅ Passenger marked as onboard!</div>';
+            show('success-container');
+        } catch (err) {
+            alert('Error: ' + err.message);
+            btn.disabled = false;
+            btn.textContent = '✅ Mark as Onboard';
+        }
+    }
+
+    // ── DELIVERY RENDER ────────────────────────────────────────────────
+    async function loadDeliveryInfo(id) {
+        deliveryDocId = id;
+        document.getElementById('loading').style.display = 'block';
+        try {
+            if (!isFirebaseReady) throw new Error('Firebase not initialized');
+            const snap = await db.collection('document_deliveries').doc(id).get();
+            if (!snap.exists) { showError('Delivery record not found.'); return; }
+            deliveryData = snap.data();
+            renderDeliveryTicket(deliveryData);
+        } catch (err) {
+            showError('Error loading delivery: ' + err.message);
+        } finally {
+            document.getElementById('loading').style.display = 'none';
+        }
+    }
+
+    function renderDeliveryTicket(data) {
+        document.getElementById('page-subtitle').textContent = 'Document Delivery Confirmation';
+        document.getElementById('d-ref').textContent =
+            'Ref: ' + (deliveryDocId ? deliveryDocId.substring(0, 8).toUpperCase() : '—');
+
+        $set('d-origin',          data.origin      || '—');
+        $set('d-destination',     data.destination || '—');
+        $set('d-sender-name',     data.senderName    || '—');
+        $set('d-sender-contact',  data.senderContact || '—');
+        $set('d-receiver-name',   data.receiverName    || '—');
+        $set('d-receiver-contact',data.receiverContact || '—');
+        $set('d-doc-type',  getDocTypeLabel(data.documentType));
+
+        if (data.documentTypeNote && data.documentTypeNote.trim()) {
+            $set('d-note', data.documentTypeNote);
+            document.getElementById('d-note-row').style.display = 'flex';
+        }
+
+        $set('d-date', data.createdAt
+            ? new Date(data.createdAt.seconds * 1000)
+                .toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' })
+            : '—');
+        $set('d-van',
+            [data.vanPlateNumber, data.vanDriverName].filter(Boolean).join(' · ') || '—');
+        // Show stored amount only when it's the correct fee (≥100); old docs stored 50 as default
+        const displayTotal = (data.paymentAmount && data.paymentAmount >= 100) ? data.paymentAmount : 115;
+        $set('d-total', '₱' + displayTotal.toFixed(2));
+        $set('d-payment-method', data.paymentMethod || '—');
+
+        const paid = data.paymentStatus === 'paid';
+        const badge = document.getElementById('d-payment-status-badge');
+        badge.textContent = paid ? '✅ Paid' : '⏳ Unpaid';
+        badge.className   = 'pay-status-badge ' + (paid ? 'paid' : 'unpaid');
+
+        document.getElementById('delivery-container').style.display = 'block';
+        renderDeliveryStatus(data.status || 'pending');
+    }
+
+    function renderDeliveryStatus(status) {
+        const strip = document.getElementById('d-status-container');
+        const txt   = document.getElementById('d-status-text');
+
+        if (status === 'delivered') {
+            strip.className = 'status-strip success';
+            txt.textContent = '✅ Delivered Successfully';
+            hide('d-pickup-section'); hide('d-received-section');
+        } else if (status === 'cancelled') {
+            strip.className = 'status-strip danger';
+            txt.textContent = '❌ Delivery Cancelled';
+            hide('d-pickup-section'); hide('d-received-section');
+        } else if (status === 'inTransit') {
+            strip.className = 'status-strip transit';
+            txt.textContent = '🚐 In Transit – Awaiting delivery to receiver';
+            hide('d-pickup-section'); show('d-received-section');
+        } else {
+            strip.className = 'status-strip pending';
+            txt.textContent = '⏳ Pending – Awaiting pickup confirmation';
+            show('d-pickup-section'); hide('d-received-section');
+        }
+    }
+
+    // ── DELIVERY ACTIONS ───────────────────────────────────────────────
+    async function confirmDeliveryPickup() {
+        const pin = document.getElementById('d-conductor-pin-pickup').value;
+        if (!pin)              { alert('Please enter the conductor PIN'); return; }
+        if (pin !== CONDUCTOR_PIN) { alert('Invalid PIN.'); return; }
+
+        const btn = document.getElementById('d-pickup-btn');
+        btn.disabled = true; btn.textContent = 'Processing…';
+        try {
+            await db.collection('document_deliveries').doc(deliveryDocId).update({
+                status: 'inTransit',
+                pickedUpAt: firebase.firestore.FieldValue.serverTimestamp(),
+                pickedUpBy: 'conductor'
+            });
+            renderDeliveryStatus('inTransit');
+            $set('d-success-text', '✅ Document picked up! Status updated to In-Transit.');
+            show('d-success-container');
+        } catch (err) {
+            alert('Error: ' + err.message);
+            btn.disabled = false;
+            btn.textContent = '📦 Confirm Pickup (Mark In-Transit)';
+        }
+    }
+
+    async function confirmDeliveryReceived() {
+        const pin = document.getElementById('d-conductor-pin-received').value;
+        if (!pin)              { alert('Please enter the conductor PIN'); return; }
+        if (pin !== CONDUCTOR_PIN) { alert('Invalid PIN.'); return; }
+
+        const btn = document.getElementById('d-received-btn');
+        btn.disabled = true; btn.textContent = 'Processing…';
+        try {
+            await db.collection('document_deliveries').doc(deliveryDocId).update({
+                status: 'delivered',
+                deliveredAt: firebase.firestore.FieldValue.serverTimestamp(),
+                deliveredBy: 'conductor'
+            });
+            renderDeliveryStatus('delivered');
+            $set('d-success-text', '✅ Document delivered to receiver successfully!');
+            show('d-success-container');
+        } catch (err) {
+            alert('Error: ' + err.message);
+            btn.disabled = false;
+            btn.textContent = '✅ Confirm Delivered to Receiver';
+        }
+    }
+
+    // ── DEMO MODES ─────────────────────────────────────────────────────
+    function loadDemoBooking() {
+        ticketId   = 'DEMO_BOOKING_001';
+        ticketData = {
+            eTicketId: 'ET-DEMO0001',
+            passengerDetails: {
+                name: 'Juan Dela Cruz',
+                regularSeats: ['A1'],
+                discountedSeats: ['A2']
+            },
+            seatIds: ['A1', 'A2'],
+            origin: 'General Santos', destination: 'Glan',
+            vanPlateNumber: 'ABC-1234', vanDriverName: 'Pedro Santos',
+            departureTime: { seconds: Math.floor(Date.now() / 1000) },
+            bookingStatus: 'confirmed',
+            paymentMethod: 'GCash', paymentStatus: 'paid',
+            basePrice: 280, discountAmount: 20, totalAmount: 295
+        };
+        renderBookingTicket(ticketData);
+    }
+
+    function loadDemoDelivery() {
+        deliveryDocId = 'DEMO_DELIVERY_001';
+        deliveryData  = {
+            origin: 'General Santos', destination: 'Glan',
+            senderName: 'Maria Santos',  senderContact: '+63 912 111 2222',
+            receiverName: 'Jose Reyes',  receiverContact: '+63 917 333 4444',
+            documentType: 'contract',
+            documentTypeNote: 'Signed copy for filing',
+            createdAt: { seconds: Math.floor(Date.now() / 1000) },
+            vanPlateNumber: 'XYZ-5678', vanDriverName: 'Carlos Aquino',
+            paymentMethod: 'GCash', paymentStatus: 'paid', paymentAmount: 115,
+            status: 'pending'
+        };
+        renderDeliveryTicket(deliveryData);
+    }
+
+    // ── HELPERS ────────────────────────────────────────────────────────
+    function $set(id, val) { document.getElementById(id).textContent = val; }
+    function show(id) { document.getElementById(id).style.display = 'block'; }
+    function hide(id) { document.getElementById(id).style.display = 'none'; }
+    function delay(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+    // Enter key support
+    document.getElementById('conductor-pin')
+        .addEventListener('keypress', e => { if (e.key === 'Enter') confirmTicket(); });
+    document.getElementById('conductor-pin-onboard')
+        .addEventListener('keypress', e => { if (e.key === 'Enter') markAsOnboard(); });
+    document.getElementById('d-conductor-pin-pickup')
+        .addEventListener('keypress', e => { if (e.key === 'Enter') confirmDeliveryPickup(); });
+    document.getElementById('d-conductor-pin-received')
+        .addEventListener('keypress', e => { if (e.key === 'Enter') confirmDeliveryReceived(); });
+
+    window.addEventListener('load', () => setTimeout(loadTicketInfo, 100));
+</script>
 </body>
 </html>

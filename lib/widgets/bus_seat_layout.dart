@@ -7,11 +7,16 @@ class BusSeatLayout extends StatelessWidget {
   final Function(Seat, SeatProvider) onSeatTap;
   final Function(Seat, SeatProvider) onSeatLongPress;
 
+  /// When [true], a document icon is shown in the driver area to indicate
+  /// that a document delivery is attached to this trip.
+  final bool showDocumentIcon;
+
   const BusSeatLayout({
     super.key,
     required this.seatProvider,
     required this.onSeatTap,
     required this.onSeatLongPress,
+    this.showDocumentIcon = false,
   });
 
   @override
@@ -34,29 +39,53 @@ class BusSeatLayout extends StatelessWidget {
                 child: Container(
                   height: double.infinity,
                   decoration: BoxDecoration(
-                    color: Colors.grey[200],
+                    color: showDocumentIcon
+                        ? Colors.blue[50]
+                        : Colors.grey[200],
                     borderRadius: BorderRadius.circular(10),
+                    border: showDocumentIcon
+                        ? Border.all(
+                            color: const Color(0xFF2196F3),
+                            width: 2,
+                          )
+                        : null,
                   ),
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.drive_eta,
-                          color: Colors.grey[600],
-                          size: isSmallScreen ? 24 : 28,
+                  child: Stack(
+                    children: [
+                      // Centre content — drive icon + label
+                      Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.drive_eta,
+                              color: Colors.grey[600],
+                              size: isSmallScreen ? 24 : 28,
+                            ),
+                            SizedBox(height: isSmallScreen ? 2 : 4),
+                            Text(
+                              'DRIVER',
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontWeight: FontWeight.w600,
+                                fontSize: isSmallScreen ? 9 : 11,
+                              ),
+                            ),
+                          ],
                         ),
-                        SizedBox(height: isSmallScreen ? 2 : 4),
-                        Text(
-                          'DRIVER',
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontWeight: FontWeight.w600,
-                            fontSize: isSmallScreen ? 9 : 11,
+                      ),
+                      // Document icon — upper-left badge (no overlap)
+                      if (showDocumentIcon)
+                        Positioned(
+                          top: 4,
+                          left: 4,
+                          child: Icon(
+                            Icons.description,
+                            color: const Color(0xFF2196F3),
+                            size: isSmallScreen ? 13 : 15,
                           ),
                         ),
-                      ],
-                    ),
+                    ],
                   ),
                 ),
               ),

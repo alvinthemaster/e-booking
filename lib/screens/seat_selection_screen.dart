@@ -6,6 +6,7 @@ import '../models/booking_models.dart' as models;
 import '../widgets/terms_conditions_modal.dart';
 import '../widgets/van_seat_layout.dart';
 import '../widgets/bus_seat_layout.dart';
+import '../services/document_delivery_service.dart';
 import 'booking_form_screen.dart';
 
 class SeatSelectionScreen extends StatefulWidget {
@@ -25,6 +26,7 @@ class SeatSelectionScreen extends StatefulWidget {
 class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   bool _showBottomPanel = false;
   bool _isInitialized = false;
+  final DocumentDeliveryService _deliveryService = DocumentDeliveryService();
 
   @override
   void initState() {
@@ -287,22 +289,32 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                       ),
                     ],
                   ),
-                  child: Consumer<SeatProvider>(
-                    builder: (context, seatProvider, child) {
-                      // Determine which layout to use based on vehicle type
-                      if (seatProvider.vehicleType == 'bus') {
-                        return BusSeatLayout(
-                          seatProvider: seatProvider,
-                          onSeatTap: _handleSeatTap,
-                          onSeatLongPress: _handleSeatLongPress,
-                        );
-                      } else {
-                        return VanSeatLayout(
-                          seatProvider: seatProvider,
-                          onSeatTap: _handleSeatTap,
-                          onSeatLongPress: _handleSeatLongPress,
-                        );
-                      }
+                  child: StreamBuilder<bool>(
+                    stream: _deliveryService
+                        .streamHasActiveDeliveryForRoute(widget.routeId),
+                    initialData: false,
+                    builder: (context, deliverySnap) {
+                      final hasDocDelivery = deliverySnap.data ?? false;
+                      return Consumer<SeatProvider>(
+                        builder: (context, seatProvider, child) {
+                          // Determine which layout to use based on vehicle type
+                          if (seatProvider.vehicleType == 'bus') {
+                            return BusSeatLayout(
+                              seatProvider: seatProvider,
+                              onSeatTap: _handleSeatTap,
+                              onSeatLongPress: _handleSeatLongPress,
+                              showDocumentIcon: hasDocDelivery,
+                            );
+                          } else {
+                            return VanSeatLayout(
+                              seatProvider: seatProvider,
+                              onSeatTap: _handleSeatTap,
+                              onSeatLongPress: _handleSeatLongPress,
+                              showDocumentIcon: hasDocDelivery,
+                            );
+                          }
+                        },
+                      );
                     },
                   ),
                 ),

@@ -91,6 +91,30 @@ service cloud.firestore {
                     request.auth.token.admin == true;
     }
     
+    // ===== DOCUMENT DELIVERIES =====
+    // Authenticated users can create and read their own document delivery requests.
+    // Admins have full access via the wildcard rule below.
+    match /document_deliveries/{deliveryId} {
+      // Users can read any delivery they own
+      allow get: if request.auth != null &&
+                   (resource == null || request.auth.uid == resource.data.userId);
+      
+      // Users can list their own deliveries (queries filtered by userId)
+      allow list: if request.auth != null;
+      
+      // Authenticated users can create a delivery for themselves
+      allow create: if request.auth != null &&
+                     request.auth.uid == request.resource.data.userId;
+      
+      // Users can update their own delivery; admins handled by the wildcard below
+      allow update: if request.auth != null &&
+                     request.auth.uid == resource.data.userId;
+      
+      // Users can delete their own delivery
+      allow delete: if request.auth != null &&
+                     request.auth.uid == resource.data.userId;
+    }
+    
     // ===== ADMIN ACCESS =====
     // Admin users can access everything (using custom claims)
     match /{document=**} {

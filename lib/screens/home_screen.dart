@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'seat_selection_screen.dart';
+import 'document_delivery_screen.dart';
 import 'booking_history_screen.dart';
 import 'van_rental_requests_screen.dart';
 import '../providers/booking_provider.dart';
@@ -620,21 +621,21 @@ class _HomeTabState extends State<HomeTab> {
                                               }
                                               return;
                                             }
-                                            
-                                            final selectedRouteId = bookingProvider.selectedRoute!.id;
-                                            debugPrint('🎫 Booking initiated for route: $selectedRouteId');
-                                            
-                                            // Navigate to seat selection with the route ID
+
+                                            final selectedRoute = bookingProvider.selectedRoute!;
+                                            debugPrint('🎫 Booking type selection for route: ${selectedRoute.id}');
+
+                                            // Show booking type selection bottom sheet
                                             if (context.mounted) {
-                                              Navigator.push(
+                                              _showBookingTypeSheet(
                                                 context,
-                                                MaterialPageRoute(
-                                                  builder: (context) =>
-                                                      SeatSelectionScreen(
-                                                        vehicleType: safeVehicleType,
-                                                        routeId: selectedRouteId, // Pass the selected route ID
-                                                      ),
-                                                ),
+                                                vehicleType: safeVehicleType,
+                                                routeId: selectedRoute.id,
+                                                routeName: selectedRoute.name,
+                                                origin: selectedRoute.origin,
+                                                destination: selectedRoute.destination,
+                                                vanPlateNumber: van.plateNumber,
+                                                vanDriverName: van.driver.name,
                                               );
                                             }
                                           },
@@ -657,6 +658,109 @@ class _HomeTabState extends State<HomeTab> {
           ],
         ),
       ),
+    );
+  }
+
+  /// Shows a bottom sheet that lets the user choose between Normal Booking
+  /// and Document Delivery.  Normal Booking navigates to [SeatSelectionScreen]
+  /// (existing logic, unmodified).  Document Delivery navigates to the new
+  /// [DocumentDeliveryScreen].
+  void _showBookingTypeSheet(
+    BuildContext context, {
+    required String vehicleType,
+    required String routeId,
+    required String routeName,
+    required String origin,
+    required String destination,
+    required String vanPlateNumber,
+    required String vanDriverName,
+  }) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetCtx) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Handle bar
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Select Booking Type',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'How would you like to use this van?',
+                style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+              ),
+              const SizedBox(height: 20),
+
+              // ── Normal Booking card ──────────────────────────────────────
+              _BookingTypeCard(
+                icon: Icons.event_seat,
+                iconColor: const Color(0xFF2196F3),
+                title: 'Normal Booking',
+                subtitle: 'Reserve a passenger seat on this van.',
+                onTap: () {
+                  Navigator.pop(sheetCtx); // close sheet
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => SeatSelectionScreen(
+                        vehicleType: vehicleType,
+                        routeId: routeId,
+                      ),
+                    ),
+                  );
+                },
+              ),
+
+              const SizedBox(height: 12),
+
+              // ── Document Delivery card ────────────────────────────────────
+              _BookingTypeCard(
+                icon: Icons.description,
+                iconColor: const Color(0xFF4CAF50),
+                title: 'Document Delivery',
+                subtitle:
+                    'Send a document via this van. No seat is reserved.',
+                onTap: () {
+                  Navigator.pop(sheetCtx); // close sheet
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => DocumentDeliveryScreen(
+                        routeId: routeId,
+                        routeName: routeName,
+                        origin: origin,
+                        destination: destination,
+                        vehicleType: vehicleType,
+                        vanPlateNumber: vanPlateNumber,
+                        vanDriverName: vanDriverName,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -922,6 +1026,78 @@ class _HomeTabState extends State<HomeTab> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+/// A selectable card used inside the booking-type bottom sheet.
+class _BookingTypeCard extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  const _BookingTypeCard({
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: iconColor.withOpacity(0.06),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: iconColor.withOpacity(0.25)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: iconColor.withOpacity(0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: iconColor, size: 24),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right, color: iconColor, size: 22),
+            ],
+          ),
+        ),
       ),
     );
   }

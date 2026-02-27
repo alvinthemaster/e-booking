@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../providers/auth_provider.dart' as app_auth;
+import 'email_verification_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -98,8 +99,12 @@ class _SignUpScreenState extends State<SignUpScreen>
       );
 
       if (success && mounted) {
-        // Navigate to home - user can use app immediately
-        Navigator.of(context).pushReplacementNamed('/home');
+        // Navigate to email verification screen — never bypass to home
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => const EmailVerificationScreen(),
+          ),
+        );
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

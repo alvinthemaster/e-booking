@@ -9,10 +9,6 @@ import '../models/document_delivery_model.dart';
 class DeliveryETicketScreen extends StatelessWidget {
   final DocumentDelivery delivery;
 
-  /// Hardcoded fee breakdown (must match document_delivery_screen.dart)
-  static const double _deliveryFee = 100.0;
-  static const double _bookingFee = 15.0;
-
   /// Firebase Hosting URL — same base as normal booking QR codes
   static const String _hostingUrl = 'https://e-ticket-2e8d0.web.app';
 
@@ -259,12 +255,10 @@ class DeliveryETicketScreen extends StatelessWidget {
                       ),
                       child: Column(
                         children: [
+                          // Payment method + status badge
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text('Payment Method',
-                                  style: TextStyle(
-                                      fontSize: 11, color: Colors.grey[600])),
                               Row(
                                 children: [
                                   Icon(
@@ -281,16 +275,43 @@ class DeliveryETicketScreen extends StatelessWidget {
                                           fontSize: 14)),
                                 ],
                               ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: delivery.paymentStatus == 'paid'
+                                      ? Colors.green[50]
+                                      : Colors.orange[50],
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: delivery.paymentStatus == 'paid'
+                                        ? Colors.green[300]!
+                                        : Colors.orange[300]!,
+                                  ),
+                                ),
+                                child: Text(
+                                  delivery.paymentStatus == 'paid'
+                                      ? '✅ Paid'
+                                      : '⏳ Unpaid',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: delivery.paymentStatus == 'paid'
+                                        ? Colors.green[700]
+                                        : Colors.orange[700],
+                                  ),
+                                ),
+                              ),
                             ],
                           ),
                           const SizedBox(height: 10),
                           const Divider(height: 1),
                           const SizedBox(height: 10),
                           _feeBreakdownRow('Delivery Fee',
-                              '\u20b1${_deliveryFee.toStringAsFixed(2)}'),
+                              '₱${delivery.deliveryFee.toStringAsFixed(2)}'),
                           const SizedBox(height: 6),
                           _feeBreakdownRow('Booking Fee',
-                              '\u20b1${_bookingFee.toStringAsFixed(2)}'),
+                              '₱${delivery.bookingFee.toStringAsFixed(2)}'),
                           const Padding(
                             padding: EdgeInsets.symmetric(vertical: 8),
                             child: Divider(height: 1),
@@ -308,7 +329,8 @@ class DeliveryETicketScreen extends StatelessWidget {
                                       size: 13,
                                       color: const Color(0xFF2196F3)),
                                   Text(
-                                    delivery.paymentAmount.toStringAsFixed(2),
+                                    (delivery.deliveryFee + delivery.bookingFee)
+                                        .toStringAsFixed(2),
                                     style: const TextStyle(
                                         fontSize: 18,
                                         fontWeight: FontWeight.bold,
@@ -318,6 +340,36 @@ class DeliveryETicketScreen extends StatelessWidget {
                               ),
                             ],
                           ),
+                          // Physical payment reminder
+                          if (delivery.paymentStatus != 'paid') ...[
+                            const SizedBox(height: 10),
+                            const Divider(height: 1),
+                            const SizedBox(height: 10),
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.orange.withOpacity(0.08),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                    color: Colors.orange.withOpacity(0.4)),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.info_outline,
+                                      color: Colors.orange, size: 16),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      'Pay \u20b1${(delivery.deliveryFee + delivery.bookingFee).toStringAsFixed(0)} to the driver/conductor when handing over your document.',
+                                      style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.orange[800]),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),

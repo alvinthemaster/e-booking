@@ -42,6 +42,8 @@ class DocumentDeliveryService {
         createdAt: DateTime.now(),
         status: DeliveryStatus.pending,
         paymentMethod: delivery.paymentMethod,
+        deliveryFee: delivery.deliveryFee,
+        bookingFee: delivery.bookingFee,
         paymentAmount: delivery.paymentAmount,
         paymentStatus: delivery.paymentStatus,
         vanPlateNumber: delivery.vanPlateNumber,

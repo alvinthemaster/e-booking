@@ -87,7 +87,9 @@ class DocumentDelivery {
 
   // Payment info
   final String paymentMethod;  // 'GCash' | 'Physical Payment'
-  final double paymentAmount;  // delivery fee
+  final double deliveryFee;    // base delivery fee (₱100)
+  final double bookingFee;     // platform booking fee (₱15)
+  final double paymentAmount;  // deliveryFee + bookingFee
   final String paymentStatus; // 'pending' | 'paid'
 
   // Linked trip info (optional – filled when a specific van/trip is chosen)
@@ -111,6 +113,8 @@ class DocumentDelivery {
     this.documentTypeNote,
     this.status = DeliveryStatus.pending,
     this.paymentMethod = 'Physical Payment',
+    this.deliveryFee = 100.0,
+    this.bookingFee = 15.0,
     this.paymentAmount = 115.0,
     this.paymentStatus = 'pending',
     this.vanPlateNumber,
@@ -135,6 +139,8 @@ class DocumentDelivery {
       'createdAt': Timestamp.fromDate(createdAt),
       'status': status.name,
       'paymentMethod': paymentMethod,
+      'deliveryFee': deliveryFee,
+      'bookingFee': bookingFee,
       'paymentAmount': paymentAmount,
       'paymentStatus': paymentStatus,
       'vanPlateNumber': vanPlateNumber,
@@ -162,6 +168,8 @@ class DocumentDelivery {
           : DateTime.now(),
       status: DeliveryStatus.fromString(map['status'] ?? ''),
       paymentMethod: map['paymentMethod'] ?? 'Physical Payment',
+      deliveryFee: (map['deliveryFee'] as num?)?.toDouble() ?? 100.0,
+      bookingFee: (map['bookingFee'] as num?)?.toDouble() ?? 15.0,
       paymentAmount: (map['paymentAmount'] as num?)?.toDouble() ?? 115.0,
       paymentStatus: map['paymentStatus'] ?? 'pending',
       vanPlateNumber: map['vanPlateNumber'],

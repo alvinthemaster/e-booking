@@ -93,23 +93,19 @@ service cloud.firestore {
     
     // ===== DOCUMENT DELIVERIES =====
     // Authenticated users can create and read their own document delivery requests.
+    // Public read + update allowed for the conductor QR web page (no auth on web).
     // Admins have full access via the wildcard rule below.
     match /document_deliveries/{deliveryId} {
-      // Users can read any delivery they own
-      allow get: if request.auth != null &&
-                   (resource == null || request.auth.uid == resource.data.userId);
-      
-      // Users can list their own deliveries (queries filtered by userId)
-      allow list: if request.auth != null;
-      
+      // Public read – conductor QR web page loads delivery by doc ID without auth
+      allow read: if true;
+
+      // Public update – conductor web page marks pickup / delivered (PIN-gated client-side)
+      allow update: if true;
+
       // Authenticated users can create a delivery for themselves
       allow create: if request.auth != null &&
                      request.auth.uid == request.resource.data.userId;
-      
-      // Users can update their own delivery; admins handled by the wildcard below
-      allow update: if request.auth != null &&
-                     request.auth.uid == resource.data.userId;
-      
+
       // Users can delete their own delivery
       allow delete: if request.auth != null &&
                      request.auth.uid == resource.data.userId;

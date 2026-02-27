@@ -1,8 +1,13 @@
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AuthProvider with ChangeNotifier {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
+
+  // Lazy getter – avoids web timing issues where Firestore plugin isn't
+  // registered yet if accessed as a field initializer.
+  FirebaseFirestore get _firestore => FirebaseFirestore.instance;
 
   bool _isAuthenticated = false;
   bool _isLoading = false;
@@ -28,10 +33,9 @@ class AuthProvider with ChangeNotifier {
         _isAuthenticated = false;
         _hasSignedIn = false;
       } else {
-        // User is signed in - allow access regardless of email verification
-        // Email verification is only enforced during sign-up flow
-        _isAuthenticated = true;
-        if (!_hasSignedIn) {
+        // Only mark authenticated if email has been verified
+        _isAuthenticated = user.emailVerified;
+        if (user.emailVerified && !_hasSignedIn) {
           _hasSignedIn = true;
         }
       }
@@ -65,7 +69,7 @@ class AuthProvider with ChangeNotifier {
     String name,
     String phone,
   ) async {
-    return await signUpWithEmailAndPassword(email, password, name);
+    return await signUpWithEmailAndPassword(email, password, name, phone);
   }
 
   Future<bool> signInWithEmailAndPassword(String email, String password) async {
@@ -76,8 +80,16 @@ class AuthProvider with ChangeNotifier {
       final UserCredential result = await _firebaseAuth
           .signInWithEmailAndPassword(email: email.trim(), password: password);
 
-      _currentUser = result.user;
-      _isAuthenticated = result.user != null;
+      final user = result.user;
+      if (user != null && !user.emailVerified) {
+        // Sign out immediately — unverified users must verify first
+        await _firebaseAuth.signOut();
+        _setError('Please verify your email before signing in. Check your inbox for the verification link.');
+        return false;
+      }
+
+      _currentUser = user;
+      _isAuthenticated = user != null;
       notifyListeners();
       return true;
     } on FirebaseAuthException catch (e) {
@@ -95,6 +107,7 @@ class AuthProvider with ChangeNotifier {
     String email,
     String password,
     String name,
+    String phone,
   ) async {
     _setLoading(true);
     _setError(null);
@@ -106,26 +119,44 @@ class AuthProvider with ChangeNotifier {
             password: password,
           );
 
+      final user = result.user;
+      if (user == null) throw Exception('Account creation failed.');
+
       // Update display name
-      await result.user?.updateDisplayName(name.trim());
+      await user.updateDisplayName(name.trim());
+
+      // Save user profile to Firestore users collection.
+      // Wrapped in its own try/catch so a Firestore failure never
+      // crashes the signup – the user can still verify their email.
+      try {
+        await _firestore.collection('users').doc(user.uid).set({
+          'uid': user.uid,
+          'name': name.trim(),
+          'email': email.trim(),
+          'phone': phone.trim(),
+          'createdAt': FieldValue.serverTimestamp(),
+          'emailVerified': false,
+        });
+      } catch (firestoreError) {
+        debugPrint('⚠️ Firestore user save failed: $firestoreError');
+      }
 
       // Send email verification
-      print('📧 Attempting to send verification email to: ${email.trim()}');
+      debugPrint('📧 Attempting to send verification email to: ${email.trim()}');
       try {
-        await result.user?.sendEmailVerification();
-        print('✅ Email verification sent successfully');
+        await user.sendEmailVerification();
+        debugPrint('✅ Email verification sent successfully');
         _setEmailVerificationSent(true);
       } catch (emailError) {
-        print('❌ Failed to send verification email: $emailError');
-        // Still continue with signup but show warning
+        debugPrint('❌ Failed to send verification email: $emailError');
         _setError('Account created but failed to send verification email. Please try resending from the verification screen.');
       }
 
-      _currentUser = result.user;
-      // User is authenticated after successful account creation
-      // They will be redirected to verification screen but can still use the app
-      _isAuthenticated = true;
-      _hasSignedIn = true;
+      // Keep the Firebase Auth user signed in so the verification screen
+      // can poll checkEmailVerification(), but do NOT mark as authenticated
+      // until the email is actually verified.
+      _currentUser = user;
+      _isAuthenticated = false; // not verified yet
       notifyListeners();
       return true;
     } on FirebaseAuthException catch (e) {
@@ -194,9 +225,19 @@ class AuthProvider with ChangeNotifier {
     try {
       await _currentUser?.reload();
       _currentUser = _firebaseAuth.currentUser;
-      _isAuthenticated = _currentUser != null && (_currentUser!.emailVerified || kDebugMode);
+      final verified = _currentUser?.emailVerified ?? false;
+      if (verified) {
+        // Update Firestore to reflect verified status
+        try {
+          await _firestore.collection('users').doc(_currentUser!.uid).update({
+            'emailVerified': true,
+          });
+        } catch (_) {}
+        _isAuthenticated = true;
+        _hasSignedIn = true;
+      }
       notifyListeners();
-      return _currentUser?.emailVerified ?? false;
+      return verified;
     } catch (e) {
       _setError(e.toString());
       return false;

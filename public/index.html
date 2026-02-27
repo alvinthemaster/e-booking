@@ -852,11 +852,18 @@
         const btn = document.getElementById('d-pickup-btn');
         btn.disabled = true; btn.textContent = 'Processing…';
         try {
-            await db.collection('document_deliveries').doc(deliveryDocId).update({
-                status: 'inTransit',
-                pickedUpAt: firebase.firestore.FieldValue.serverTimestamp(),
-                pickedUpBy: 'conductor'
-            });
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('demo')) {
+                await delay(600);
+            } else {
+                if (!isFirebaseReady || !db) throw new Error('Firebase not initialized. Please refresh.');
+                await db.collection('document_deliveries').doc(deliveryDocId).update({
+                    status: 'inTransit',
+                    pickedUpAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    pickedUpBy: 'conductor'
+                });
+            }
+            deliveryData.status = 'inTransit';
             renderDeliveryStatus('inTransit');
             $set('d-success-text', '✅ Document picked up! Status updated to In-Transit.');
             show('d-success-container');
@@ -875,11 +882,18 @@
         const btn = document.getElementById('d-received-btn');
         btn.disabled = true; btn.textContent = 'Processing…';
         try {
-            await db.collection('document_deliveries').doc(deliveryDocId).update({
-                status: 'delivered',
-                deliveredAt: firebase.firestore.FieldValue.serverTimestamp(),
-                deliveredBy: 'conductor'
-            });
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('demo')) {
+                await delay(600);
+            } else {
+                if (!isFirebaseReady || !db) throw new Error('Firebase not initialized. Please refresh.');
+                await db.collection('document_deliveries').doc(deliveryDocId).update({
+                    status: 'delivered',
+                    deliveredAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    deliveredBy: 'conductor'
+                });
+            }
+            deliveryData.status = 'delivered';
             renderDeliveryStatus('delivered');
             $set('d-success-text', '✅ Document delivered to receiver successfully!');
             show('d-success-container');

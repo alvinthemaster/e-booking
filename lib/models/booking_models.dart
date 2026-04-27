@@ -70,6 +70,11 @@ class Booking {
   final double basePrice;
   final double discountAmount;
   final double totalAmount;
+  // Add-ons
+  final int childCount;
+  final int petCount;
+  final int baggageCount;
+  final double addOnsAmount;
   final String paymentMethod;
   final PaymentStatus paymentStatus;
   final BookingStatus bookingStatus;
@@ -102,6 +107,10 @@ class Booking {
     required this.basePrice,
     required this.discountAmount,
     required this.totalAmount,
+    this.childCount = 0,
+    this.petCount = 0,
+    this.baggageCount = 0,
+    this.addOnsAmount = 0.0,
     required this.paymentMethod,
     required this.paymentStatus,
     required this.bookingStatus,
@@ -137,6 +146,10 @@ class Booking {
       'basePrice': basePrice,
       'discountAmount': discountAmount,
       'totalAmount': totalAmount,
+      'childCount': childCount,
+      'petCount': petCount,
+      'baggageCount': baggageCount,
+      'addOnsAmount': addOnsAmount,
       'paymentMethod': paymentMethod,
       'paymentStatus': paymentStatus.name,
       'bookingStatus': bookingStatus.name,
@@ -173,6 +186,10 @@ class Booking {
       basePrice: (map['basePrice'] ?? 0).toDouble(),
       discountAmount: (map['discountAmount'] ?? 0).toDouble(),
       totalAmount: (map['totalAmount'] ?? 0).toDouble(),
+      childCount: (map['childCount'] ?? 0).toInt(),
+      petCount: (map['petCount'] ?? 0).toInt(),
+      baggageCount: (map['baggageCount'] ?? 0).toInt(),
+      addOnsAmount: (map['addOnsAmount'] ?? 0).toDouble(),
       paymentMethod: map['paymentMethod'] ?? '',
       paymentStatus: PaymentStatus.values.firstWhere(
         (e) => e.name == map['paymentStatus'],

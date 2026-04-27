@@ -32,6 +32,15 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
+  
+  // Add-ons
+  int _childCount = 0;
+  int _petCount = 0;
+  int _baggageCount = 0;
+  
+  // Pricing constants
+  static const double _childPetPrice = 50.0;
+  static const double _baggagePrice = 150.0;
 
   @override
   void dispose() {
@@ -39,6 +48,16 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
     _emailController.dispose();
     _phoneController.dispose();
     super.dispose();
+  }
+  
+  double get _addOnsTotal {
+    return (_childCount * _childPetPrice) + 
+           (_petCount * _childPetPrice) + 
+           (_baggageCount * _baggagePrice);
+  }
+  
+  double get _grandTotal {
+    return widget.totalAmount + _addOnsTotal;
   }
 
   @override
@@ -164,11 +183,123 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
                             ),
                           ],
 
+                          // Add-ons section
+                          if (_childCount > 0 || _petCount > 0 || _baggageCount > 0) ...[
+                            const Divider(height: 20),
+                            if (_childCount > 0)
+                              _buildSummaryRow(
+                                'Child ($_childCount):',
+                                CurrencyFormatter.formatPesoWithDecimals(_childCount * _childPetPrice),
+                              ),
+                            if (_petCount > 0)
+                              _buildSummaryRow(
+                                'Pet ($_petCount):',
+                                CurrencyFormatter.formatPesoWithDecimals(_petCount * _childPetPrice),
+                              ),
+                            if (_baggageCount > 0)
+                              _buildSummaryRow(
+                                'Baggage ($_baggageCount):',
+                                CurrencyFormatter.formatPesoWithDecimals(_baggageCount * _baggagePrice),
+                              ),
+                            _buildSummaryRow(
+                              'Add-ons Total:',
+                              CurrencyFormatter.formatPesoWithDecimals(_addOnsTotal),
+                              color: const Color(0xFF2196F3),
+                            ),
+                          ],
+                          
+                          const Divider(height: 20),
+                          _buildSummaryRow(
+                            'Booking Fee:',
+                            CurrencyFormatter.formatPesoWithDecimals(15.0),
+                          ),
                           const Divider(height: 20),
                           _buildSummaryRow(
                             'Total Amount:',
-                            CurrencyFormatter.formatPesoWithDecimals(widget.totalAmount),
+                            CurrencyFormatter.formatPesoWithDecimals(_grandTotal),
                             isTotal: true,
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Add-ons Card
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.grey.withOpacity(0.1),
+                            spreadRadius: 1,
+                            blurRadius: 5,
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.add_circle_outline,
+                                color: const Color(0xFF2196F3),
+                                size: 24,
+                              ),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'Add-ons (Optional)',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Child counter
+                          _buildAddOnCounter(
+                            icon: Icons.child_care,
+                            label: 'Child',
+                            price: _childPetPrice,
+                            count: _childCount,
+                            onIncrement: () => setState(() => _childCount++),
+                            onDecrement: () => setState(() {
+                              if (_childCount > 0) _childCount--;
+                            }),
+                          ),
+
+                          const SizedBox(height: 12),
+
+                          // Pet counter
+                          _buildAddOnCounter(
+                            icon: Icons.pets,
+                            label: 'Pet',
+                            price: _childPetPrice,
+                            count: _petCount,
+                            onIncrement: () => setState(() => _petCount++),
+                            onDecrement: () => setState(() {
+                              if (_petCount > 0) _petCount--;
+                            }),
+                          ),
+
+                          const SizedBox(height: 12),
+
+                          // Baggage counter
+                          _buildAddOnCounter(
+                            icon: Icons.luggage,
+                            label: 'Baggage',
+                            price: _baggagePrice,
+                            count: _baggageCount,
+                            onIncrement: () => setState(() => _baggageCount++),
+                            onDecrement: () => setState(() {
+                              if (_baggageCount > 0) _baggageCount--;
+                            }),
                           ),
                         ],
                       ),
@@ -446,6 +577,78 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
     );
   }
 
+  Widget _buildAddOnCounter({
+    required IconData icon,
+    required String label,
+    required double price,
+    required int count,
+    required VoidCallback onIncrement,
+    required VoidCallback onDecrement,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: const Color(0xFF2196F3), size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                Text(
+                  '₱${price.toStringAsFixed(0)} each',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Row(
+            children: [
+              IconButton(
+                onPressed: onDecrement,
+                icon: const Icon(Icons.remove_circle_outline),
+                color: count > 0 ? const Color(0xFF2196F3) : Colors.grey,
+                iconSize: 28,
+              ),
+              Container(
+                width: 40,
+                alignment: Alignment.center,
+                child: Text(
+                  count.toString(),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              IconButton(
+                onPressed: onIncrement,
+                icon: const Icon(Icons.add_circle_outline),
+                color: const Color(0xFF2196F3),
+                iconSize: 28,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   void _proceedToPayment() {
     if (_formKey.currentState!.validate()) {
       Navigator.push(
@@ -458,10 +661,14 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
             passengerName: _nameController.text.trim(),
             passengerEmail: _emailController.text.trim(),
             passengerPhone: _phoneController.text.trim(),
-            routeId: widget.routeId, // Pass route ID
-            routeName: widget.routeName, // Pass route name
-            origin: widget.origin, // Pass origin
-            destination: widget.destination, // Pass destination
+            routeId: widget.routeId,
+            routeName: widget.routeName,
+            origin: widget.origin,
+            destination: widget.destination,
+            childCount: _childCount,
+            petCount: _petCount,
+            baggageCount: _baggageCount,
+            addOnsAmount: _addOnsTotal,
           ),
         ),
       );

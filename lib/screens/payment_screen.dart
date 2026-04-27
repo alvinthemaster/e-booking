@@ -15,10 +15,14 @@ class PaymentScreen extends StatefulWidget {
   final String passengerName;
   final String passengerEmail;
   final String passengerPhone;
-  final String routeId; // Add route ID
-  final String routeName; // Add route name
-  final String origin; // Add origin
-  final String destination; // Add destination
+  final String routeId;
+  final String routeName;
+  final String origin;
+  final String destination;
+  final int childCount;
+  final int petCount;
+  final int baggageCount;
+  final double addOnsAmount;
 
   const PaymentScreen({
     super.key,
@@ -32,6 +36,10 @@ class PaymentScreen extends StatefulWidget {
     required this.routeName,
     required this.origin,
     required this.destination,
+    this.childCount = 0,
+    this.petCount = 0,
+    this.baggageCount = 0,
+    this.addOnsAmount = 0.0,
   });
 
   @override
@@ -156,6 +164,30 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                   ],
                                 ),
                               ),
+                            
+                            // Add-ons section
+                            if (widget.childCount > 0 || widget.petCount > 0 || widget.baggageCount > 0) ...[
+                              if (widget.childCount > 0)
+                                _buildSummaryRowWithPeso(
+                                  'Child (${widget.childCount}):',
+                                  (widget.childCount * 50).toStringAsFixed(2),
+                                ),
+                              if (widget.petCount > 0)
+                                _buildSummaryRowWithPeso(
+                                  'Pet (${widget.petCount}):',
+                                  (widget.petCount * 50).toStringAsFixed(2),
+                                ),
+                              if (widget.baggageCount > 0)
+                                _buildSummaryRowWithPeso(
+                                  'Baggage (${widget.baggageCount}):',
+                                  (widget.baggageCount * 150).toStringAsFixed(2),
+                                ),
+                              _buildSummaryRowWithPeso(
+                                'Add-ons Total:',
+                                widget.addOnsAmount.toStringAsFixed(2),
+                              ),
+                            ],
+                            
                             _buildSummaryRowWithPeso(
                               'Booking Fee:',
                               '15.00',
@@ -163,7 +195,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                             const Divider(height: 20),
                             _buildSummaryRowWithPeso(
                               'Total Amount:',
-                              widget.totalAmount.toStringAsFixed(2),
+                              (widget.totalAmount + widget.addOnsAmount).toStringAsFixed(2),
                               isTotal: true,
                             ),
                           ],
@@ -522,7 +554,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
       final success = await paymentProvider.processPayment(
         bookingId: 'UVE${DateTime.now().millisecondsSinceEpoch}',
-        amount: widget.totalAmount,
+        amount: widget.totalAmount + widget.addOnsAmount,
         method: paymentProvider.selectedMethod,
       );
 
@@ -544,7 +576,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
             seatIds: widget.selectedSeats.map((seat) => seat.id).toList(),
             basePrice: widget.totalAmount - widget.discountAmount - 15.0, // Subtract discount and booking fee from total
             discountAmount: widget.discountAmount,
-            totalAmount: widget.totalAmount,
+            totalAmount: widget.totalAmount + widget.addOnsAmount,
+            childCount: widget.childCount,
+            petCount: widget.petCount,
+            baggageCount: widget.baggageCount,
+            addOnsAmount: widget.addOnsAmount,
             paymentMethod: paymentProvider.selectedMethod,
             paymentStatus:
                 paymentProvider.currentStatus, // Pass the current payment status
@@ -561,8 +597,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
             },
           );
 
-          // Reserve seats
+          // Reserve seats locally
           await seatProvider.reserveSelectedSeats();
+          
+          // Trigger immediate refresh of seat availability for all users on this route
+          await seatProvider.refreshSeatAvailability(routeId: widget.routeId);
 
           // Small delay to ensure booking is fully saved
           await Future.delayed(const Duration(milliseconds: 500));

@@ -45,10 +45,14 @@ class FirebaseBookingService {
         basePrice: booking.basePrice,
         discountAmount: booking.discountAmount,
         totalAmount: booking.totalAmount,
+        childCount: booking.childCount,
+        petCount: booking.petCount,
+        baggageCount: booking.baggageCount,
+        addOnsAmount: booking.addOnsAmount,
         paymentMethod: booking.paymentMethod,
         paymentStatus: booking.paymentStatus, // Use the provided payment status
         // Determine initial booking status: pending if discounted, else confirmed
-        bookingStatus: ((booking.discountAmount != null && booking.discountAmount > 0) ||
+        bookingStatus: ((booking.discountAmount > 0) ||
           (booking.passengerDetails != null &&
               (booking.passengerDetails!['discountedSeats'] as List?)?.isNotEmpty == true))
             ? BookingStatus.pending

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/booking_models.dart';
 import '../services/notification_service.dart';
 import 'dart:async';
@@ -26,8 +27,10 @@ class _VanDepartureCountdownWidgetState
   Booking? _fullVanBooking;
   Van? _fullVan;
   Duration? _timeUntilDeparture;
-  bool _hasNotifiedStart = false;
-  bool _hasNotifiedEnd = false;
+  
+  // Notification tracking keys
+  String _getNotificationKey(String vanId, String type) => 'van_notification_${vanId}_$type';
+  String _getDepartureTimeKey(String vanId) => 'van_departure_time_$vanId';
 
   @override
   void initState() {
@@ -66,8 +69,6 @@ class _VanDepartureCountdownWidgetState
           _fullVanBooking = null;
           _fullVan = null;
           _timeUntilDeparture = null;
-          _hasNotifiedStart = false;
-          _hasNotifiedEnd = false;
         });
         _countdownTimer?.cancel();
         _vanSubscription?.cancel();
@@ -87,8 +88,6 @@ class _VanDepartureCountdownWidgetState
           _fullVanBooking = null;
           _fullVan = null;
           _timeUntilDeparture = null;
-          _hasNotifiedStart = false;
-          _hasNotifiedEnd = false;
         });
         _countdownTimer?.cancel();
         _vanSubscription?.cancel();
@@ -155,23 +154,30 @@ class _VanDepartureCountdownWidgetState
           _fullVanBooking = null;
           _fullVan = null;
           _timeUntilDeparture = null;
-          _hasNotifiedStart = false;
-          _hasNotifiedEnd = false;
         });
         _countdownTimer?.cancel();
       }
     });
   }
 
-  void _startCountdownTimer(Van van) {
+  void _startCountdownTimer(Van van) async {
     _countdownTimer?.cancel();
 
-    // Fetch van doc and compute departure time synchronously for initial value
-    () async {
-      try {
-        final vanDoc = await _firestore.collection('vans').doc(van.id).get();
-        DateTime departureTime;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final vanDoc = await _firestore.collection('vans').doc(van.id).get();
+      DateTime departureTime;
 
+      // Check if we have a stored departure time for this van
+      final storedDepartureKey = _getDepartureTimeKey(van.id);
+      final storedDepartureMs = prefs.getInt(storedDepartureKey);
+
+      if (storedDepartureMs != null) {
+        // Use stored departure time (persists across app restarts)
+        departureTime = DateTime.fromMillisecondsSinceEpoch(storedDepartureMs);
+        debugPrint('📅 Using stored departure time: $departureTime');
+      } else {
+        // First time - determine departure time
         if (vanDoc.exists) {
           final data = vanDoc.data();
           final scheduledDeparture = data?['scheduledDepartureTime'] as Timestamp?;
@@ -183,60 +189,96 @@ class _VanDepartureCountdownWidgetState
         } else {
           departureTime = DateTime.now().add(const Duration(minutes: 15));
         }
+        
+        // Store departure time for persistence
+        await prefs.setInt(storedDepartureKey, departureTime.millisecondsSinceEpoch);
+        debugPrint('💾 Stored new departure time: $departureTime');
+      }
 
-        // Set initial time immediately so UI shows value at once
-        final initialDiff = departureTime.difference(DateTime.now());
-        setState(() {
-          _timeUntilDeparture = initialDiff.isNegative ? Duration.zero : initialDiff;
-        });
+      // Calculate initial time difference
+      final initialDiff = departureTime.difference(DateTime.now());
+      setState(() {
+        _timeUntilDeparture = initialDiff.isNegative ? Duration.zero : initialDiff;
+      });
 
-        // Send notification when timer starts (only once per van)
-        if (!_hasNotifiedStart) {
-          _hasNotifiedStart = true;
-          final minutes = initialDiff.inMinutes;
-          final seconds = initialDiff.inSeconds % 60;
-          final isBus = van.vehicleType.toLowerCase() == 'bus';
-          NotificationService().showNotification(
-            title: isBus ? '🚌 Your Bus is Full!' : '🚐 Your Van is Full!',
-            body: '${isBus ? 'Bus' : 'Van'} ${van.plateNumber} will depart in ${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')} minutes. Get ready!',
-            payload: 'van_departure_${van.id}',
-          );
-          debugPrint('🔔 VanWidget: Sent countdown start notification for ${van.vehicleType} ${van.plateNumber} - Time: ${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}');
-        }
+      // Check notification flags from SharedPreferences
+      final notified15Min = prefs.getBool(_getNotificationKey(van.id, '15min')) ?? false;
 
-        // Update countdown every second
-        _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-          final now = DateTime.now();
-          final difference = departureTime.difference(now);
+      final isBus = van.vehicleType.toLowerCase() == 'bus';
+      final vehicleName = isBus ? 'Bus' : 'Van';
 
-          if (difference.isNegative) {
-            // Time's up - send departure notification
-            timer.cancel();
+      // Send 15-minute notification if not sent yet and time is appropriate
+      if (!notified15Min && initialDiff.inMinutes >= 5) {
+        final minutes = initialDiff.inMinutes;
+        final seconds = initialDiff.inSeconds % 60;
+        NotificationService().showNotification(
+          title: isBus ? '🚌 Your Bus is Full!' : '🚐 Your Van is Full!',
+          body: '$vehicleName ${van.plateNumber} will depart in ${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')} minutes. Get ready!',
+          payload: 'van_departure_${van.id}',
+        );
+        await prefs.setBool(_getNotificationKey(van.id, '15min'), true);
+        debugPrint('🔔 Sent 15-minute notification for $vehicleName ${van.plateNumber}');
+      }
 
-            if (!_hasNotifiedEnd) {
-              _hasNotifiedEnd = true;
-              final isBus = van.vehicleType.toLowerCase() == 'bus';
-              NotificationService().showNotification(
-                title: isBus ? '🚌 Bus Departing Now!' : '🚀 Van Departing Now!',
-                body: '${isBus ? 'Bus' : 'Van'} ${van.plateNumber} is leaving. Please board immediately!',
-                payload: 'van_departed_${van.id}',
-              );
-              debugPrint('🔔 VanWidget: Sent countdown end notification for ${van.vehicleType} ${van.plateNumber}');
-            }
+      // Update countdown every second
+      _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
+        final prefs = await SharedPreferences.getInstance();
+        final now = DateTime.now();
+        final difference = departureTime.difference(now);
 
+        // Re-read notification flags to get current state
+        final notified5Min = prefs.getBool(_getNotificationKey(van.id, '5min')) ?? false;
+        final notifiedDeparture = prefs.getBool(_getNotificationKey(van.id, 'departure')) ?? false;
+
+        if (difference.isNegative || difference == Duration.zero) {
+          // Time's up - send departure notification
+          timer.cancel();
+
+          if (!notifiedDeparture) {
+            NotificationService().showNotification(
+              title: isBus ? '🚌 Bus Departing Now!' : '🚀 Van Departing Now!',
+              body: '$vehicleName ${van.plateNumber} is leaving. Please board immediately!',
+              payload: 'van_departed_${van.id}',
+            );
+            await prefs.setBool(_getNotificationKey(van.id, 'departure'), true);
+            debugPrint('🔔 Sent departure notification for $vehicleName ${van.plateNumber}');
+            
+            // Clean up stored data after departure
+            await prefs.remove(storedDepartureKey);
+            await prefs.remove(_getNotificationKey(van.id, '15min'));
+            await prefs.remove(_getNotificationKey(van.id, '5min'));
+            await prefs.remove(_getNotificationKey(van.id, 'departure'));
+          }
+
+          if (mounted) {
             setState(() {
               _timeUntilDeparture = Duration.zero;
             });
-          } else {
+          }
+        } else {
+          // Check for 5-minute notification
+          if (!notified5Min && difference.inMinutes < 5 && difference.inMinutes >= 0) {
+            final minutes = difference.inMinutes;
+            final seconds = difference.inSeconds % 60;
+            NotificationService().showNotification(
+              title: isBus ? '⚠️ Bus Departing Soon!' : '⚠️ Van Departing Soon!',
+              body: '$vehicleName ${van.plateNumber} is departing in ${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')} minutes. Please proceed to boarding area!',
+              payload: 'van_5min_${van.id}',
+            );
+            await prefs.setBool(_getNotificationKey(van.id, '5min'), true);
+            debugPrint('🔔 Sent 5-minute notification for $vehicleName ${van.plateNumber}');
+          }
+
+          if (mounted) {
             setState(() {
               _timeUntilDeparture = difference;
             });
           }
-        });
-      } catch (e) {
-        debugPrint('❌ VanWidget: Error starting countdown timer: $e');
-      }
-    }();
+        }
+      });
+    } catch (e) {
+      debugPrint('❌ VanWidget: Error starting countdown timer: $e');
+    }
   }
 
   String _formatDuration(Duration duration) {

@@ -72,8 +72,12 @@ class BookingProvider with ChangeNotifier {
     required double discountAmount,
     required double totalAmount,
     required String paymentMethod,
-    PaymentStatus? paymentStatus, // Add optional payment status parameter
+    PaymentStatus? paymentStatus,
     Map<String, dynamic>? passengerDetails,
+    int childCount = 0,
+    int petCount = 0,
+    int baggageCount = 0,
+    double addOnsAmount = 0.0,
   }) async {
     try {
       _isLoading = true;
@@ -107,7 +111,7 @@ class BookingProvider with ChangeNotifier {
       final passengerName = passengerDetails?['name'] as String? ?? user.displayName ?? 'User';
 
         // Determine initial booking status: pending if discounted, else confirmed
-        final bool hasDiscount = (discountAmount != null && discountAmount > 0) ||
+        final bool hasDiscount = (discountAmount > 0) ||
           (passengerDetails != null &&
             (passengerDetails['discountedSeats'] as List?)?.isNotEmpty == true);
 
@@ -127,6 +131,10 @@ class BookingProvider with ChangeNotifier {
         basePrice: basePrice,
         discountAmount: discountAmount,
         totalAmount: totalAmount,
+        childCount: childCount,
+        petCount: petCount,
+        baggageCount: baggageCount,
+        addOnsAmount: addOnsAmount,
         paymentMethod: paymentMethod,
         paymentStatus:
           paymentStatus ??
@@ -224,7 +232,7 @@ class BookingProvider with ChangeNotifier {
       }
 
       // Determine status based on discounts
-      final bool hasDiscount = (booking.discountAmount != null && booking.discountAmount > 0) ||
+      final bool hasDiscount = (booking.discountAmount > 0) ||
           (booking.passengerDetails != null &&
               (booking.passengerDetails!['discountedSeats'] as List?)?.isNotEmpty == true);
 

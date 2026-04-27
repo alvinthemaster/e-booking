@@ -331,6 +331,32 @@ class ETicketScreen extends StatelessWidget {
                                             fontWeight: FontWeight.w500,
                                           ),
                                         ),
+                                      if (booking.childCount > 0 || booking.petCount > 0 || booking.baggageCount > 0) ...[
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          'Add-ons:',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey[600],
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                        if (booking.childCount > 0)
+                                          Text(
+                                            '  • Child: ${booking.childCount}',
+                                            style: const TextStyle(fontSize: 13),
+                                          ),
+                                        if (booking.petCount > 0)
+                                          Text(
+                                            '  • Pet: ${booking.petCount}',
+                                            style: const TextStyle(fontSize: 13),
+                                          ),
+                                        if (booking.baggageCount > 0)
+                                          Text(
+                                            '  • Baggage: ${booking.baggageCount}',
+                                            style: const TextStyle(fontSize: 13),
+                                          ),
+                                      ],
                                     ],
                                   ),
                                 ),

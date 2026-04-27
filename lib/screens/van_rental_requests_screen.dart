@@ -192,17 +192,26 @@ class AvailableVansTab extends StatefulWidget {
   State<AvailableVansTab> createState() => _AvailableVansTabState();
 }
 
-class _AvailableVansTabState extends State<AvailableVansTab> {
+class _AvailableVansTabState extends State<AvailableVansTab>
+    with SingleTickerProviderStateMixin {
   final VanRentalService _vanRentalService = VanRentalService();
   List<RentalVan> _allVans = [];
   Set<String> _bookedVanIds = {};
   bool _isLoading = true;
   String? _errorMessage;
+  late TabController _vehicleTabController;
 
   @override
   void initState() {
     super.initState();
+    _vehicleTabController = TabController(length: 2, vsync: this);
     _loadAvailableVans();
+  }
+
+  @override
+  void dispose() {
+    _vehicleTabController.dispose();
+    super.dispose();
   }
 
   bool _isVanRented(RentalVan van) =>
@@ -257,7 +266,7 @@ class _AvailableVansTabState extends State<AvailableVansTab> {
             CircularProgressIndicator(),
             SizedBox(height: 16),
             Text(
-              'Loading available vans...',
+              'Loading available vehicles...',
               style: TextStyle(color: Colors.grey, fontSize: 16),
             ),
           ],
@@ -275,7 +284,7 @@ class _AvailableVansTabState extends State<AvailableVansTab> {
               Icon(Icons.error_outline, size: 80, color: Colors.red[300]),
               const SizedBox(height: 24),
               Text(
-                'Error Loading Vans',
+                'Error Loading Vehicles',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w600,
@@ -304,7 +313,60 @@ class _AvailableVansTabState extends State<AvailableVansTab> {
       );
     }
 
-    if (_allVans.isEmpty) {
+    // Filter vans by vehicle type
+    final vans = _allVans.where((v) => 
+      v.vehicleType.toLowerCase() == 'van').toList();
+    final buses = _allVans.where((v) => 
+      v.vehicleType.toLowerCase() == 'bus').toList();
+
+    return Column(
+      children: [
+        Container(
+          color: Colors.white,
+          child: TabBar(
+            controller: _vehicleTabController,
+            indicatorColor: const Color(0xFF2196F3),
+            labelColor: const Color(0xFF2196F3),
+            unselectedLabelColor: Colors.grey,
+            tabs: [
+              Tab(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.local_shipping, size: 16),
+                    const SizedBox(width: 8),
+                    Text('Van (${vans.length})'),
+                  ],
+                ),
+              ),
+              Tab(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(FontAwesomeIcons.bus, size: 16),
+                    const SizedBox(width: 8),
+                    Text('Bus (${buses.length})'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: TabBarView(
+            controller: _vehicleTabController,
+            children: [
+              _buildVehicleList(vans, 'Van'),
+              _buildVehicleList(buses, 'Bus'),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildVehicleList(List<RentalVan> vehicles, String vehicleType) {
+    if (vehicles.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -316,11 +378,15 @@ class _AvailableVansTabState extends State<AvailableVansTab> {
                 color: Colors.grey[100],
                 shape: BoxShape.circle,
               ),
-              child: Icon(FontAwesomeIcons.bus, size: 60, color: Colors.grey[400]),
+              child: Icon(
+                vehicleType == 'Van' ? Icons.local_shipping : FontAwesomeIcons.bus,
+                size: 60,
+                color: Colors.grey[400],
+              ),
             ),
             const SizedBox(height: 24),
             Text(
-              'No Vans Available',
+              'No ${vehicleType}s Available',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w600,
@@ -329,7 +395,7 @@ class _AvailableVansTabState extends State<AvailableVansTab> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Check back later for available rental vans',
+              'Check back later for available rental ${vehicleType.toLowerCase()}s',
               style: TextStyle(fontSize: 16, color: Colors.grey[500]),
             ),
             const SizedBox(height: 24),
@@ -352,9 +418,9 @@ class _AvailableVansTabState extends State<AvailableVansTab> {
       color: const Color(0xFF2196F3),
       child: ListView.builder(
         padding: const EdgeInsets.all(16.0),
-        itemCount: _allVans.length,
+        itemCount: vehicles.length,
         itemBuilder: (context, index) {
-          final van = _allVans[index];
+          final van = vehicles[index];
           return _buildVanCard(van, isRented: _isVanRented(van));
         },
       ),
@@ -1280,6 +1346,21 @@ class _RentalRequestFormScreenState extends State<RentalRequestFormScreen> {
   final TextEditingController _purposeController = TextEditingController();
   final TextEditingController _requirementsController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
+  
+  // Purpose dropdown
+  String? _selectedPurpose;
+  final TextEditingController _customPurposeController = TextEditingController();
+  
+  final List<String> _purposeOptions = [
+    'Business Trip',
+    'Family Outing',
+    'School Trip',
+    'Wedding',
+    'Airport Transfer',
+    'Tour/Sightseeing',
+    'Corporate Event',
+    'Other',
+  ];
 
   bool _isSubmitting = false;
 
@@ -1310,6 +1391,7 @@ class _RentalRequestFormScreenState extends State<RentalRequestFormScreen> {
     _purposeController.dispose();
     _requirementsController.dispose();
     _phoneController.dispose();
+    _customPurposeController.dispose();
     super.dispose();
   }
 
@@ -1333,7 +1415,8 @@ class _RentalRequestFormScreenState extends State<RentalRequestFormScreen> {
     }
 
     final days = _calculateDays();
-    if (widget.van.maxRentalDays != null && days > widget.van.maxRentalDays!) {
+    // Fix: only check max if it's set and greater than 0
+    if (widget.van.maxRentalDays != null && widget.van.maxRentalDays! > 0 && days > widget.van.maxRentalDays!) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -1350,6 +1433,18 @@ class _RentalRequestFormScreenState extends State<RentalRequestFormScreen> {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) throw Exception('Not authenticated');
 
+      // Determine final purpose value
+      String? finalPurpose;
+      if (_selectedPurpose != null) {
+        if (_selectedPurpose == 'Other') {
+          finalPurpose = _customPurposeController.text.isNotEmpty 
+              ? _customPurposeController.text 
+              : null;
+        } else {
+          finalPurpose = _selectedPurpose;
+        }
+      }
+      
       final request = VanRentalRequest(
         id: '',
         userId: user.uid,
@@ -1366,7 +1461,7 @@ class _RentalRequestFormScreenState extends State<RentalRequestFormScreen> {
         totalAmount: _calculateTotal(),
         pickupLocation: _pickupController.text,
         dropoffLocation: _dropoffController.text,
-        purpose: _purposeController.text.isEmpty ? null : _purposeController.text,
+        purpose: finalPurpose,
         specialRequirements:
             _requirementsController.text.isEmpty ? null : _requirementsController.text,
         status: VanRentalStatus.pending,
@@ -1467,11 +1562,11 @@ class _RentalRequestFormScreenState extends State<RentalRequestFormScreen> {
                 children: [
                   const Text('Rental Period',
                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  if (widget.van.minRentalDays != null || widget.van.maxRentalDays != null)
+                  if (widget.van.minRentalDays != null || (widget.van.maxRentalDays != null && widget.van.maxRentalDays! > 0))
                     Text(
                       [
                         if (widget.van.minRentalDays != null) 'Min: ${widget.van.minRentalDays}d',
-                        if (widget.van.maxRentalDays != null) 'Max: ${widget.van.maxRentalDays}d',
+                        if (widget.van.maxRentalDays != null && widget.van.maxRentalDays! > 0) 'Max: ${widget.van.maxRentalDays}d',
                       ].join('  •  '),
                       style: TextStyle(
                           fontSize: 12,
@@ -1502,7 +1597,8 @@ class _RentalRequestFormScreenState extends State<RentalRequestFormScreen> {
                               final minEnd = widget.van.minRentalDays != null
                                   ? date.add(Duration(days: widget.van.minRentalDays! - 1))
                                   : date;
-                              final maxEnd = widget.van.maxRentalDays != null
+                              // Fix: treat maxRentalDays == 0 as no limit
+                              final maxEnd = (widget.van.maxRentalDays != null && widget.van.maxRentalDays! > 0)
                                   ? date.add(Duration(days: widget.van.maxRentalDays! - 1))
                                   : date.add(const Duration(days: 365));
                               if (_endDate!.isBefore(minEnd) || _endDate!.isAfter(maxEnd)) {
@@ -1541,7 +1637,8 @@ class _RentalRequestFormScreenState extends State<RentalRequestFormScreen> {
                             ? _startDate!.add(
                                 Duration(days: widget.van.minRentalDays! - 1))
                             : _startDate!;
-                        final maxEnd = widget.van.maxRentalDays != null
+                        // Fix: treat maxRentalDays == 0 as no limit
+                        final maxEnd = (widget.van.maxRentalDays != null && widget.van.maxRentalDays! > 0)
                             ? _startDate!.add(
                                 Duration(days: widget.van.maxRentalDays! - 1))
                             : _startDate!.add(const Duration(days: 365));
@@ -1580,7 +1677,9 @@ class _RentalRequestFormScreenState extends State<RentalRequestFormScreen> {
                 Builder(
                   builder: (context) {
                     final days = _calculateDays();
-                    final exceedsMax = widget.van.maxRentalDays != null &&
+                    // Fix: only check if max is set and > 0
+                    final exceedsMax = widget.van.maxRentalDays != null && 
+                        widget.van.maxRentalDays! > 0 &&
                         days > widget.van.maxRentalDays!;
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1716,14 +1815,51 @@ class _RentalRequestFormScreenState extends State<RentalRequestFormScreen> {
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               const SizedBox(height: 12),
 
-              TextFormField(
-                controller: _purposeController,
+              // Purpose dropdown
+              DropdownButtonFormField<String>(
+                value: _selectedPurpose,
                 decoration: const InputDecoration(
                   labelText: 'Purpose (Optional)',
                   border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.description),
                 ),
-                maxLines: 2,
+                items: _purposeOptions.map((purpose) {
+                  return DropdownMenuItem(
+                    value: purpose,
+                    child: Text(purpose),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedPurpose = value;
+                    // Clear custom text if switching away from Other
+                    if (value != 'Other') {
+                      _customPurposeController.clear();
+                    }
+                  });
+                },
               ),
+              
+              // Show custom purpose field when "Other" is selected
+              if (_selectedPurpose == 'Other') ...[
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _customPurposeController,
+                  decoration: const InputDecoration(
+                    labelText: 'Please specify purpose',
+                    hintText: 'Enter custom purpose',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.edit),
+                  ),
+                  maxLines: 2,
+                  validator: (value) {
+                    if (_selectedPurpose == 'Other' && (value == null || value.isEmpty)) {
+                      return 'Please specify the purpose';
+                    }
+                    return null;
+                  },
+                ),
+              ],
 
               const SizedBox(height: 32),
               SizedBox(

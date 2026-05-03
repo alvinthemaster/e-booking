@@ -347,45 +347,95 @@ class BusSeatLayout extends StatelessWidget {
     return GestureDetector(
       onTap: () => onSeatTap(seat, seatProvider),
       onLongPress: () => onSeatLongPress(seat, seatProvider),
-      child: Container(
-        height: double.infinity,
-        decoration: BoxDecoration(
-          color: seatColor,
-          border: Border.all(color: borderColor, width: 2),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Padding(
-            padding: EdgeInsets.all(isSmallScreen ? 2 : 4),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (overlayIcon != null) overlayIcon,
-                if (overlayIcon != null) SizedBox(height: isSmallScreen ? 1 : 2),
-                Text(
-                  seat.id,
-                  style: TextStyle(
-                    color: textColor,
-                    fontWeight: FontWeight.w600,
-                    fontSize: isSmallScreen ? 11 : 13,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+      child: Stack(
+        fit: StackFit.expand,
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              color: seatColor,
+              border: Border.all(color: borderColor, width: 2),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Padding(
+                padding: EdgeInsets.all(isSmallScreen ? 2 : 4),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (overlayIcon != null) overlayIcon,
+                    if (overlayIcon != null) SizedBox(height: isSmallScreen ? 1 : 2),
+                    Text(
+                      seat.id,
+                      style: TextStyle(
+                        color: textColor,
+                        fontWeight: FontWeight.w600,
+                        fontSize: isSmallScreen ? 11 : 13,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (seat.hasDiscount && !seat.isReserved) ...[
+                      SizedBox(height: isSmallScreen ? 1 : 2),
+                      Icon(
+                        Icons.local_offer,
+                        color: textColor,
+                        size: isSmallScreen ? 9 : 11,
+                      ),
+                    ],
+                  ],
                 ),
-                if (seat.hasDiscount && !seat.isReserved) ...[
-                  SizedBox(height: isSmallScreen ? 1 : 2),
-                  Icon(
-                    Icons.local_offer,
-                    color: textColor,
-                    size: isSmallScreen ? 9 : 11,
-                  ),
-                ],
-              ],
+              ),
             ),
           ),
-        ),
+          // Pet / Child badge on reserved seats
+          if (seat.isReserved && (seat.petCount > 0 || seat.childCount > 0))
+            Positioned(
+              top: -3,
+              right: -3,
+              child: Container(
+                padding: const EdgeInsets.all(2),
+                decoration: BoxDecoration(
+                  color: Colors.orange[700],
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (seat.childCount > 0) ...[
+                      Icon(Icons.child_care,
+                          color: Colors.white,
+                          size: isSmallScreen ? 8 : 10),
+                      Text(
+                        '${seat.childCount}',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: isSmallScreen ? 7 : 9,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      if (seat.petCount > 0) const SizedBox(width: 2),
+                    ],
+                    if (seat.petCount > 0) ...[
+                      Icon(Icons.pets,
+                          color: Colors.white,
+                          size: isSmallScreen ? 8 : 10),
+                      Text(
+                        '${seat.petCount}',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: isSmallScreen ? 7 : 9,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

@@ -456,6 +456,42 @@ class FirebaseBookingService {
     }
   }
 
+  /// Get pet/child flags for reserved seats (seatId → {petCount, hasChild})
+  Future<Map<String, Map<String, dynamic>>> getReservedSeatFlags(
+    String routeId,
+    String vanPlateNumber,
+    String vanDriverName,
+  ) async {
+    try {
+      final bookingsQuery = await _bookingsCollection
+          .where('routeId', isEqualTo: routeId)
+          .where('vanPlateNumber', isEqualTo: vanPlateNumber)
+          .where('vanDriverName', isEqualTo: vanDriverName)
+          .where('bookingStatus', whereIn: ['pending', 'confirmed', 'onboard'])
+          .where(
+            'paymentStatus',
+            whereIn: [PaymentStatus.paid.name, PaymentStatus.pending.name],
+          )
+          .get();
+
+      final flags = <String, Map<String, dynamic>>{};
+      for (final doc in bookingsQuery.docs) {
+        final booking = Booking.fromDocument(doc);
+        final petCount = booking.petCount;
+        final childCount = booking.childCount;
+        if (petCount > 0 || childCount > 0) {
+          for (final seatId in booking.seatIds) {
+            flags[seatId] = {'petCount': petCount, 'childCount': childCount};
+          }
+        }
+      }
+      return flags;
+    } catch (e) {
+      debugPrint('Error getting seat flags: $e');
+      return {};
+    }
+  }
+
   /// Update seat availability in schedule
   Future<void> _updateSeatAvailability(
     String routeId,

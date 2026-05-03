@@ -269,6 +269,9 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                         Colors.white,
                       ),
                     ),
+                    Flexible(
+                      child: _buildLegendIconItem(),
+                    ),
                   ],
                 ),
               ),
@@ -501,6 +504,41 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
         const SizedBox(height: 6),
         Text(
           label,
+          style: TextStyle(
+            fontSize: 11,
+            color: Colors.grey[700],
+            fontWeight: FontWeight.w500,
+          ),
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLegendIconItem() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 26,
+          height: 26,
+          decoration: BoxDecoration(
+            color: Colors.orange[700],
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.child_care, color: Colors.white, size: 10),
+              Icon(Icons.pets, color: Colors.white, size: 10),
+            ],
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'Child/Pet',
           style: TextStyle(
             fontSize: 11,
             color: Colors.grey[700],

@@ -15,6 +15,7 @@ class AuthProvider with ChangeNotifier {
   User? _currentUser;
   bool _emailVerificationSent = false;
   bool _hasSignedIn = false; // Track if user has successfully signed in
+  String? _userRole;
 
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
@@ -22,26 +23,38 @@ class AuthProvider with ChangeNotifier {
   User? get currentUser => _currentUser;
   bool get emailVerificationSent => _emailVerificationSent;
   bool get requiresEmailVerification => _currentUser != null && !_currentUser!.emailVerified;
+  String? get userRole => _userRole;
 
   AuthProvider() {
     // Listen to auth state changes
-    _firebaseAuth.authStateChanges().listen((User? user) {
+    _firebaseAuth.authStateChanges().listen((User? user) async {
       _currentUser = user;
       
       if (user == null) {
         // User is signed out
         _isAuthenticated = false;
         _hasSignedIn = false;
+        _userRole = null;
       } else {
         // Only mark authenticated if email has been verified
         _isAuthenticated = user.emailVerified;
         if (user.emailVerified && !_hasSignedIn) {
           _hasSignedIn = true;
+          await _fetchUserRole(user.uid);
         }
       }
       
       notifyListeners();
     });
+  }
+
+  Future<void> _fetchUserRole(String uid) async {
+    try {
+      final doc = await _firestore.collection('users').doc(uid).get();
+      _userRole = doc.data()?['role'] as String?;
+    } catch (e) {
+      debugPrint('⚠️ Failed to fetch user role: $e');
+    }
   }
 
   void _setLoading(bool loading) {
@@ -90,6 +103,9 @@ class AuthProvider with ChangeNotifier {
 
       _currentUser = user;
       _isAuthenticated = user != null;
+      if (user != null) {
+        await _fetchUserRole(user.uid);
+      }
       notifyListeners();
       return true;
     } on FirebaseAuthException catch (e) {

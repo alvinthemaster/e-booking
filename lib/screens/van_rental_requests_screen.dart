@@ -1546,7 +1546,6 @@ class _RentalRequestFormScreenState extends State<RentalRequestFormScreen> {
     'Business Trip',
     'Family Outing',
     'School Trip',
-    'Wedding',
     'Airport Transfer',
     'Tour/Sightseeing',
     'Corporate Event',
@@ -1561,7 +1560,7 @@ class _RentalRequestFormScreenState extends State<RentalRequestFormScreen> {
   // Driver's license attachment (required for self-drive)
   String? _driverLicenseBase64;
   String? _driverLicenseFileName;
-  static const int _maxFileSizeBytes = 700 * 1024; // 700 KB
+  static const int _maxFileSizeBytes = 10 * 1024 * 1024; // 10 MB
 
   // Proof of purpose attachment (required)
   String? _proofOfPurposeBase64;
@@ -1623,7 +1622,7 @@ class _RentalRequestFormScreenState extends State<RentalRequestFormScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('File too large. Maximum size is 700 KB. Please compress the image or use a smaller file.'),
+            content: Text('File too large. Maximum size is 10 MB. Please compress the image or use a smaller file.'),
             backgroundColor: Colors.red,
           ),
         );
@@ -1649,7 +1648,7 @@ class _RentalRequestFormScreenState extends State<RentalRequestFormScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('File too large. Maximum size is 700 KB. Please compress the image or use a smaller file.'),
+            content: Text('File too large. Maximum size is 10 MB. Please compress the image or use a smaller file.'),
             backgroundColor: Colors.red,
           ),
         );
@@ -2255,7 +2254,7 @@ class _RentalRequestFormScreenState extends State<RentalRequestFormScreen> {
                         ),
                       ] else ...[
                         Text(
-                          'Attach a clear photo or scan of your driver\'s license.\nAccepted: JPG, PNG, PDF — Max 700 KB',
+                          'Attach a clear photo or scan of your driver\'s license.\nAccepted: JPG, PNG, PDF — Max 10 MB',
                           style: TextStyle(
                               fontSize: 12, color: Colors.grey[600]),
                         ),
@@ -2413,7 +2412,7 @@ class _RentalRequestFormScreenState extends State<RentalRequestFormScreen> {
                       ),
                     ] else ...[
                       Text(
-                        'Attach a document supporting your trip purpose\n(e.g., itinerary, invitation letter, booking confirmation).\nAccepted: JPG, PNG, PDF — Max 700 KB',
+                        'Attach a document supporting your trip purpose\n(e.g., itinerary, invitation letter, booking confirmation).\nAccepted: JPG, PNG, PDF — Max 10 MB',
                         style:
                             TextStyle(fontSize: 12, color: Colors.grey[700]),
                       ),

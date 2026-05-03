@@ -9,6 +9,8 @@ class Seat {
   bool isReserved;
   bool isSelected;
   bool hasDiscount;
+  int petCount;
+  int childCount;
 
   Seat({
     required this.id,
@@ -17,6 +19,8 @@ class Seat {
     this.isReserved = false,
     this.isSelected = false,
     this.hasDiscount = false,
+    this.petCount = 0,
+    this.childCount = 0,
   });
 
   Map<String, dynamic> toJson() {
@@ -421,11 +425,15 @@ class Van {
   }
 
   factory Van.fromMap(Map<String, dynamic> map) {
+    final driverRaw = map['driver'];
+    final driverMap = driverRaw is Map
+        ? Map<String, dynamic>.from(driverRaw)
+        : <String, dynamic>{};
     return Van(
       id: map['id'] ?? '',
       plateNumber: map['plateNumber'] ?? '',
       capacity: map['capacity'] ?? 18,
-      driver: Driver.fromMap(map['driver'] ?? {}),
+      driver: Driver.fromMap(driverMap),
       status: map['status'] ?? 'inactive',
       currentRouteId: map['currentRouteId'],
       queuePosition: map['queuePosition'] ?? 0,

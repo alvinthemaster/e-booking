@@ -130,8 +130,9 @@ class _VanDepartureCountdownWidgetState
       // Check if van is full (by capacity OR status == "full" ONLY)
       final isFullByCapacity = van.currentOccupancy >= van.capacity;
       final isFullByStatus = van.status.toLowerCase().trim() == 'full';
+      final isInTransit = van.status.toLowerCase().trim() == 'in_transit';
       
-      if (isFullByCapacity || isFullByStatus) {
+      if (!isInTransit && (isFullByCapacity || isFullByStatus)) {
         debugPrint(
           '🚐 Van ${van.plateNumber} detected as FULL - '
           'Occupancy: ${van.currentOccupancy}/${van.capacity}, Status: "${van.status}"',

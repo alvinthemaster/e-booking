@@ -79,9 +79,12 @@ class _SignInScreenState extends State<SignInScreen>
       );
 
       if (success && mounted) {
-        // Always navigate to home - user is authenticated
-        // Email verification is now optional and doesn't block app usage
-        Navigator.of(context).pushReplacementNamed('/home');
+        final role = authProvider.userRole;
+        if (role == 'driver') {
+          Navigator.of(context).pushReplacementNamed('/driver');
+        } else {
+          Navigator.of(context).pushReplacementNamed('/home');
+        }
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

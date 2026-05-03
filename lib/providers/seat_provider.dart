@@ -85,6 +85,20 @@ class SeatProvider with ChangeNotifier {
               seat.isSelected = false; // Ensure reserved seats are not selected
             }
           }
+
+          // Fetch pet/child flags for reserved seats
+          final seatFlags = await _bookingService.getReservedSeatFlags(
+            routeId,
+            activeVan.plateNumber,
+            activeVan.driver.name,
+          );
+          for (final seat in _seats) {
+            final flags = seatFlags[seat.id];
+            if (flags != null) {
+              seat.petCount = (flags['petCount'] as int? ?? 0);
+              seat.childCount = (flags['childCount'] as int? ?? 0);
+            }
+          }
         }
       } catch (e) {
         debugPrint('Error loading reserved seats: $e');
@@ -120,6 +134,18 @@ class SeatProvider with ChangeNotifier {
             seat.isSelected = false;
             seat.hasDiscount = false;
           }
+        }
+
+        // Refresh pet/child flags
+        final seatFlags = await _bookingService.getReservedSeatFlags(
+          routeId,
+          activeVan.plateNumber,
+          activeVan.driver.name,
+        );
+        for (final seat in _seats) {
+          final flags = seatFlags[seat.id];
+          seat.petCount = (flags?['petCount'] as int? ?? 0);
+          seat.childCount = (flags?['childCount'] as int? ?? 0);
         }
 
         // Update selected seats list

@@ -1,9 +1,10 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:file_picker/file_picker.dart';
+import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/booking_models.dart';
 import 'payment_screen.dart';
 import '../utils/currency_formatter.dart';
+import '../providers/auth_provider.dart';
 
 class BookingFormScreen extends StatefulWidget {
   final List<Seat> selectedSeats;
@@ -36,18 +37,50 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
   final _phoneController = TextEditingController();
   
   // Add-ons
-  int _childCount = 0;
-  int _petCount = 0;
   int _baggageCount = 0;
+
+  // Additional information flags
+  int _petCount = 0;
+  int _infantCount = 0;
   
   // Pricing constants
-  static const double _childPetPrice = 50.0;
   static const double _baggagePrice = 150.0;
 
-  // Proof of trip attachment
-  String? _proofOfTripBase64;
-  String? _proofOfTripFileName;
-  static const int _maxFileSizeBytes = 700 * 1024; // 700 KB
+  @override
+  void initState() {
+    super.initState();
+    _prefillUserInfo();
+  }
+
+  Future<void> _prefillUserInfo() async {
+    try {
+      final authProvider =
+          Provider.of<AuthProvider>(context, listen: false);
+      final uid = authProvider.currentUser?.uid;
+      if (uid == null) return;
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .get();
+      final data = doc.data();
+      if (data == null) return;
+      if (mounted) {
+        setState(() {
+          if (_nameController.text.isEmpty) {
+            _nameController.text = (data['name'] as String? ?? '').trim();
+          }
+          if (_emailController.text.isEmpty) {
+            _emailController.text = (data['email'] as String? ?? '').trim();
+          }
+          if (_phoneController.text.isEmpty) {
+            _phoneController.text = (data['phone'] as String? ?? '').trim();
+          }
+        });
+      }
+    } catch (e) {
+      // silently ignore – user can still fill in manually
+    }
+  }
 
   @override
   void dispose() {
@@ -56,37 +89,9 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
     _phoneController.dispose();
     super.dispose();
   }
-
-  Future<void> _pickProofOfTrip() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
-      withData: true,
-    );
-    if (result == null || result.files.isEmpty) return;
-    final file = result.files.first;
-    if (file.bytes == null) return;
-    if (file.bytes!.length > _maxFileSizeBytes) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('File too large. Maximum size is 700 KB. Please compress the image or use a smaller file.'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-      return;
-    }
-    setState(() {
-      _proofOfTripBase64 = base64Encode(file.bytes!);
-      _proofOfTripFileName = file.name;
-    });
-  }
   
   double get _addOnsTotal {
-    return (_childCount * _childPetPrice) + 
-           (_petCount * _childPetPrice) + 
-           (_baggageCount * _baggagePrice);
+    return _baggageCount * _baggagePrice;
   }
   
   double get _grandTotal {
@@ -217,18 +222,8 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
                           ],
 
                           // Add-ons section
-                          if (_childCount > 0 || _petCount > 0 || _baggageCount > 0) ...[
+                          if (_baggageCount > 0) ...[
                             const Divider(height: 20),
-                            if (_childCount > 0)
-                              _buildSummaryRow(
-                                'Child ($_childCount):',
-                                CurrencyFormatter.formatPesoWithDecimals(_childCount * _childPetPrice),
-                              ),
-                            if (_petCount > 0)
-                              _buildSummaryRow(
-                                'Pet ($_petCount):',
-                                CurrencyFormatter.formatPesoWithDecimals(_petCount * _childPetPrice),
-                              ),
                             if (_baggageCount > 0)
                               _buildSummaryRow(
                                 'Baggage ($_baggageCount):',
@@ -294,34 +289,6 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
                             ],
                           ),
                           const SizedBox(height: 16),
-
-                          // Child counter
-                          _buildAddOnCounter(
-                            icon: Icons.child_care,
-                            label: 'Child',
-                            price: _childPetPrice,
-                            count: _childCount,
-                            onIncrement: () => setState(() => _childCount++),
-                            onDecrement: () => setState(() {
-                              if (_childCount > 0) _childCount--;
-                            }),
-                          ),
-
-                          const SizedBox(height: 12),
-
-                          // Pet counter
-                          _buildAddOnCounter(
-                            icon: Icons.pets,
-                            label: 'Pet',
-                            price: _childPetPrice,
-                            count: _petCount,
-                            onIncrement: () => setState(() => _petCount++),
-                            onDecrement: () => setState(() {
-                              if (_petCount > 0) _petCount--;
-                            }),
-                          ),
-
-                          const SizedBox(height: 12),
 
                           // Baggage counter
                           _buildAddOnCounter(
@@ -482,103 +449,75 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
 
                     const SizedBox(height: 24),
 
-                    // Proof of Trip Attachment
-                    const SizedBox(height: 24),
+                    // Additional Information Card
                     Container(
-                      padding: const EdgeInsets.all(16),
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: _proofOfTripBase64 == null
-                            ? Colors.amber[50]
-                            : Colors.green[50],
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: _proofOfTripBase64 == null
-                              ? Colors.amber[400]!
-                              : Colors.green[400]!,
-                          width: 1.5,
-                        ),
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.grey.withOpacity(0.1),
+                            spreadRadius: 1,
+                            blurRadius: 5,
+                          ),
+                        ],
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
                             children: [
-                              Icon(
-                                Icons.attach_file,
-                                color: _proofOfTripBase64 == null
-                                    ? Colors.amber[700]
-                                    : Colors.green[700],
-                                size: 20,
+                              const Icon(
+                                Icons.info_outline,
+                                color: Color(0xFF2196F3),
+                                size: 24,
                               ),
                               const SizedBox(width: 8),
-                              Text(
-                                'Proof of Trip',
+                              const Text(
+                                'Additional Information',
                                 style: TextStyle(
+                                  fontSize: 18,
                                   fontWeight: FontWeight.w600,
-                                  color: _proofOfTripBase64 == null
-                                      ? Colors.amber[900]
-                                      : Colors.green[800],
                                 ),
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                '(Required)',
-                                style: TextStyle(
-                                    fontSize: 11, color: Colors.red[600]),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 8),
-                          if (_proofOfTripBase64 != null) ...[
-                            Row(
-                              children: [
-                                Icon(Icons.check_circle,
-                                    color: Colors.green[600], size: 18),
-                                const SizedBox(width: 6),
-                                Expanded(
-                                  child: Text(
-                                    _proofOfTripFileName ?? 'File attached',
-                                    style: TextStyle(
-                                        color: Colors.green[700], fontSize: 13),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                                TextButton(
-                                  onPressed: () => setState(() {
-                                    _proofOfTripBase64 = null;
-                                    _proofOfTripFileName = null;
-                                  }),
-                                  style: TextButton.styleFrom(
-                                      foregroundColor: Colors.red),
-                                  child: const Text('Remove',
-                                      style: TextStyle(fontSize: 12)),
-                                ),
-                              ],
+                          const SizedBox(height: 4),
+                          Text(
+                            'Let us know if you\'re traveling with any of the following (no extra charge)',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey[600],
                             ),
-                          ] else ...[
-                            Text(
-                              'Attach your itinerary, booking confirmation, or any proof of trip.\nAccepted: JPG, PNG, PDF — Max 700 KB',
-                              style: TextStyle(
-                                  fontSize: 12, color: Colors.grey[700]),
-                            ),
-                            const SizedBox(height: 10),
-                            SizedBox(
-                              width: double.infinity,
-                              child: OutlinedButton.icon(
-                                onPressed: _pickProofOfTrip,
-                                icon: const Icon(Icons.upload_file, size: 18),
-                                label: const Text('Choose File'),
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: Colors.amber[800],
-                                  side: BorderSide(
-                                      color: Colors.amber[600]!),
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius:
-                                          BorderRadius.circular(8)),
-                                ),
-                              ),
-                            ),
-                          ],
+                          ),
+                          const SizedBox(height: 12),
+                          // Infant/Child counter
+                          _buildAddOnCounter(
+                            icon: Icons.child_care,
+                            label: 'Infant / Child',
+                            subtitle: 'Traveling with an infant or child',
+                            count: _infantCount,
+                            onIncrement: () =>
+                                setState(() => _infantCount++),
+                            onDecrement: () => setState(() {
+                              if (_infantCount > 0) _infantCount--;
+                            }),
+                          ),
+                          const SizedBox(height: 10),
+                          // Pet counter
+                          _buildAddOnCounter(
+                            icon: Icons.pets,
+                            label: 'Pet',
+                            subtitle: 'Traveling with a pet',
+                            count: _petCount,
+                            onIncrement: () =>
+                                setState(() => _petCount++),
+                            onDecrement: () => setState(() {
+                              if (_petCount > 0) _petCount--;
+                            }),
+                          ),
                         ],
                       ),
                     ),
@@ -715,7 +654,8 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
   Widget _buildAddOnCounter({
     required IconData icon,
     required String label,
-    required double price,
+    double? price,
+    String? subtitle,
     required int count,
     required VoidCallback onIncrement,
     required VoidCallback onDecrement,
@@ -743,7 +683,7 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
                   ),
                 ),
                 Text(
-                  '₱${price.toStringAsFixed(0)} each',
+                  subtitle ?? '₱${price?.toStringAsFixed(0) ?? '0'} each',
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey[600],
@@ -785,16 +725,23 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
   }
 
   void _proceedToPayment() {
-    if (_formKey.currentState!.validate()) {
-      if (_proofOfTripBase64 == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Proof of Trip attachment is required before proceeding.'),
-            backgroundColor: Colors.red,
+    // Prevent infant/child in front seats
+    const frontSeats = {'D1A', 'D1B'};
+    if (_infantCount > 0 &&
+        widget.selectedSeats.any((s) => frontSeats.contains(s.id))) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Infants/children are not allowed in front seats (D1A, D1B). '
+            'Please select a different seat.',
           ),
-        );
-        return;
-      }
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 4),
+        ),
+      );
+      return;
+    }
+    if (_formKey.currentState!.validate()) {
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -809,12 +756,12 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
             routeName: widget.routeName,
             origin: widget.origin,
             destination: widget.destination,
-            childCount: _childCount,
+            childCount: _infantCount,
             petCount: _petCount,
             baggageCount: _baggageCount,
             addOnsAmount: _addOnsTotal,
-            proofOfTripBase64: _proofOfTripBase64,
-            proofOfTripFileName: _proofOfTripFileName,
+            proofOfTripBase64: null,
+            proofOfTripFileName: null,
           ),
         ),
       );

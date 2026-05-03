@@ -170,17 +170,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                               ),
                             
                             // Add-ons section
-                            if (widget.childCount > 0 || widget.petCount > 0 || widget.baggageCount > 0) ...[
-                              if (widget.childCount > 0)
-                                _buildSummaryRowWithPeso(
-                                  'Child (${widget.childCount}):',
-                                  (widget.childCount * 50).toStringAsFixed(2),
-                                ),
-                              if (widget.petCount > 0)
-                                _buildSummaryRowWithPeso(
-                                  'Pet (${widget.petCount}):',
-                                  (widget.petCount * 50).toStringAsFixed(2),
-                                ),
+                            if (widget.baggageCount > 0) ...[
                               if (widget.baggageCount > 0)
                                 _buildSummaryRowWithPeso(
                                   'Baggage (${widget.baggageCount}):',

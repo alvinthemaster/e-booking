@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'screens/home_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/van_rental_requests_screen.dart';
+import 'screens/driver_screen.dart';
 import 'providers/booking_provider.dart';
 import 'providers/seat_provider.dart';
 import 'providers/payment_provider.dart';
@@ -110,10 +111,13 @@ class GodtrascoApp extends StatelessWidget {
               '/sign-in': (context) => const SignInScreen(),
               '/profile': (context) => const ProfileScreen(),
               '/van_rental_requests': (context) => const VanRentalRequestsScreen(),
+              '/driver': (context) => const DriverScreen(),
             },
-            // Show sign-in screen if not authenticated, otherwise show home with booking listener
+            // Route based on authentication and role
             home: authProvider.isAuthenticated
-                ? const UserBookingListener(child: HomeScreen())
+                ? (authProvider.userRole == 'driver'
+                    ? const DriverScreen()
+                    : const UserBookingListener(child: HomeScreen()))
                 : const SignInScreen(),
           );
         },

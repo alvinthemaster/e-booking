@@ -90,6 +90,9 @@ class Booking {
   final DateTime? completedAt;
   final String? completionReason;
   final bool? adminCompletion;
+  // Proof of trip attachment (stored as base64, Spark plan compatible)
+  final String? proofOfTripBase64;
+  final String? proofOfTripFileName;
 
   Booking({
     required this.id,
@@ -126,6 +129,8 @@ class Booking {
     this.completedAt,
     this.completionReason,
     this.adminCompletion,
+    this.proofOfTripBase64,
+    this.proofOfTripFileName,
   });
 
   // Convert Booking to Map for Firestore
@@ -165,6 +170,8 @@ class Booking {
       'completedAt': completedAt != null ? Timestamp.fromDate(completedAt!) : null,
       'completionReason': completionReason,
       'adminCompletion': adminCompletion,
+      'proofOfTripBase64': proofOfTripBase64,
+      'proofOfTripFileName': proofOfTripFileName,
     };
   }
 
@@ -215,6 +222,8 @@ class Booking {
           : null,
       completionReason: map['completionReason'],
       adminCompletion: map['adminCompletion'],
+      proofOfTripBase64: map['proofOfTripBase64'],
+      proofOfTripFileName: map['proofOfTripFileName'],
     );
   }
 

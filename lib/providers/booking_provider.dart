@@ -78,6 +78,8 @@ class BookingProvider with ChangeNotifier {
     int petCount = 0,
     int baggageCount = 0,
     double addOnsAmount = 0.0,
+    String? proofOfTripBase64,
+    String? proofOfTripFileName,
   }) async {
     try {
       _isLoading = true;
@@ -144,6 +146,8 @@ class BookingProvider with ChangeNotifier {
         vanPlateNumber: activeVan.plateNumber,
         vanDriverName: activeVan.driver.name,
         vanDriverContact: activeVan.driver.contact,
+        proofOfTripBase64: proofOfTripBase64,
+        proofOfTripFileName: proofOfTripFileName,
       );
 
       final bookingId = await _bookingService.createBooking(booking);

@@ -1,11 +1,14 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:file_picker/file_picker.dart';
 import '../models/van_rental_request_model.dart';
 import '../models/rental_van_model.dart';
 import '../services/van_rental_service.dart';
 import '../utils/currency_formatter.dart';
+import '../widgets/van_rental_terms_modal.dart';
 
 // ========== IMAGE CAROUSEL WIDGET ==========
 class _ImageCarousel extends StatefulWidget {
@@ -851,6 +854,7 @@ class _MyRequestsTabState extends State<MyRequestsTab> {
   List<VanRentalRequest> _requests = [];
   bool _isLoading = true;
   String? _errorMessage;
+  VanRentalStatus? _selectedStatus; // null = show all
 
   @override
   void initState() {
@@ -948,15 +952,166 @@ class _MyRequestsTabState extends State<MyRequestsTab> {
     return RefreshIndicator(
       onRefresh: _loadRequests,
       color: const Color(0xFF2196F3),
-      child: ListView.builder(
-        padding: const EdgeInsets.all(16.0),
-        itemCount: _requests.length,
-        itemBuilder: (context, index) {
-          final request = _requests[index];
-          return _buildRequestCard(request);
-        },
+      child: Column(
+        children: [
+          _buildRentalFilterChips(),
+          Expanded(
+            child: Builder(
+              builder: (context) {
+                final filtered = _selectedStatus == null
+                    ? _requests
+                    : _requests.where((r) => r.status == _selectedStatus).toList();
+                if (filtered.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.inbox, size: 56, color: Colors.grey[300]),
+                        const SizedBox(height: 12),
+                        Text(
+                          'No ${_selectedStatus == null ? '' : _rentalStatusLabel(_selectedStatus!)} requests',
+                          style: TextStyle(fontSize: 15, color: Colors.grey[500]),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                return ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                  itemCount: filtered.length,
+                  itemBuilder: (context, index) =>
+                      _buildRequestCard(filtered[index]),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
+  }
+
+  Widget _buildRentalFilterChips() {
+    const statuses = VanRentalStatus.values;
+    return Container(
+      color: Colors.white,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        child: Row(
+          children: [
+            _rentalChip(null, 'All', Icons.list_alt),
+            const SizedBox(width: 8),
+            ...statuses.map((s) => Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: _rentalChip(s, _rentalStatusLabel(s), _rentalStatusIcon(s)),
+                )),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _rentalChip(VanRentalStatus? status, String label, IconData icon) {
+    final selected = _selectedStatus == status;
+    final color = status == null ? const Color(0xFF2196F3) : _rentalStatusColor(status);
+    return GestureDetector(
+      onTap: () => setState(() => _selectedStatus = status),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(
+          color: selected ? color : Colors.grey[100],
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: selected ? color : Colors.grey[300]!),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: selected ? Colors.white : Colors.grey[600]),
+            const SizedBox(width: 5),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: selected ? Colors.white : Colors.grey[700],
+              ),
+            ),
+            if (status != null) ...[
+              const SizedBox(width: 5),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                decoration: BoxDecoration(
+                  color: selected ? Colors.white.withOpacity(0.3) : color.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  '${_requests.where((r) => r.status == status).length}',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: selected ? Colors.white : color,
+                  ),
+                ),
+              ),
+            ] else ...[
+              const SizedBox(width: 5),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                decoration: BoxDecoration(
+                  color: selected ? Colors.white.withOpacity(0.3) : const Color(0xFF2196F3).withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  '${_requests.length}',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: selected ? Colors.white : const Color(0xFF2196F3),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _rentalStatusLabel(VanRentalStatus s) {
+    switch (s) {
+      case VanRentalStatus.pending: return 'Pending';
+      case VanRentalStatus.approved: return 'Approved';
+      case VanRentalStatus.confirmed: return 'Confirmed';
+      case VanRentalStatus.active: return 'Active';
+      case VanRentalStatus.completed: return 'Completed';
+      case VanRentalStatus.cancelled: return 'Cancelled';
+      case VanRentalStatus.rejected: return 'Rejected';
+    }
+  }
+
+  IconData _rentalStatusIcon(VanRentalStatus s) {
+    switch (s) {
+      case VanRentalStatus.pending: return Icons.hourglass_empty;
+      case VanRentalStatus.approved: return Icons.thumb_up_outlined;
+      case VanRentalStatus.confirmed: return Icons.verified_outlined;
+      case VanRentalStatus.active: return Icons.directions_car;
+      case VanRentalStatus.completed: return Icons.check_circle_outline;
+      case VanRentalStatus.cancelled: return Icons.cancel_outlined;
+      case VanRentalStatus.rejected: return Icons.block;
+    }
+  }
+
+  Color _rentalStatusColor(VanRentalStatus s) {
+    switch (s) {
+      case VanRentalStatus.pending: return Colors.orange;
+      case VanRentalStatus.approved: return Colors.teal;
+      case VanRentalStatus.confirmed: return const Color(0xFF2196F3);
+      case VanRentalStatus.active: return Colors.green;
+      case VanRentalStatus.completed: return Colors.green[700]!;
+      case VanRentalStatus.cancelled: return Colors.grey;
+      case VanRentalStatus.rejected: return Colors.red;
+    }
   }
 
   Widget _buildRequestCard(VanRentalRequest request) {
@@ -993,10 +1148,32 @@ class _MyRequestsTabState extends State<MyRequestsTab> {
               const SizedBox(height: 8),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(CurrencyFormatter.formatPesoWithDecimals(request.totalAmount),
-                      style: const TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF2196F3))),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        CurrencyFormatter.formatPesoWithDecimals(request.totalAmount),
+                        style: const TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF2196F3)),
+                      ),
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          Icon(Icons.lock_outline, size: 12, color: Colors.amber[800]),
+                          const SizedBox(width: 3),
+                          Text(
+                            '50% deposit: ${CurrencyFormatter.formatPesoWithDecimals(request.depositAmount)}',
+                            style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.amber[800],
+                                fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                   Text(DateFormat('MMM dd, yyyy').format(request.createdAt),
                       style: TextStyle(fontSize: 12, color: Colors.grey[600])),
                 ],
@@ -1124,9 +1301,23 @@ class _MyRequestsTabState extends State<MyRequestsTab> {
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF2196F3)),
                   ),
+                  _buildInfoRow(
+                    Icons.lock_outline,
+                    'Required Deposit (50%)',
+                    CurrencyFormatter.formatPesoWithDecimals(request.depositAmount),
+                    valueStyle: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFFFF8F00)),
+                  ),
                   _buildInfoRow(Icons.payments_outlined, 'Price per Day',
                       CurrencyFormatter.formatPesoWithDecimals(
                           request.pricePerDay)),
+                  _buildInfoRow(
+                    Icons.person_pin_circle_outlined,
+                    'Driver',
+                    request.withDriver ? 'With Driver (+₱1,000.00)' : 'Self-drive',
+                  ),
 
                   if (request.purpose != null &&
                       request.purpose!.isNotEmpty) ...
@@ -1363,6 +1554,18 @@ class _RentalRequestFormScreenState extends State<RentalRequestFormScreen> {
   ];
 
   bool _isSubmitting = false;
+  bool _withDriver = false;
+  bool _termsAccepted = false;
+  static const double _driverFee = 1000.0;
+
+  // Driver's license attachment (required for self-drive)
+  String? _driverLicenseBase64;
+  String? _driverLicenseFileName;
+  static const int _maxFileSizeBytes = 700 * 1024; // 700 KB
+
+  // Proof of purpose attachment (required)
+  String? _proofOfPurposeBase64;
+  String? _proofOfPurposeFileName;
 
   @override
   void initState() {
@@ -1401,18 +1604,117 @@ class _RentalRequestFormScreenState extends State<RentalRequestFormScreen> {
   }
 
   double _calculateTotal() {
-    return widget.van.pricePerDay * _calculateDays();
+    final baseAmount = widget.van.pricePerDay * _calculateDays();
+    return baseAmount + (_withDriver ? _driverFee : 0);
   }
 
-  Future<void> _submitRequest() async {
+  double _calculateDeposit() => _calculateTotal() * 0.5;
+
+  Future<void> _pickDriverLicense() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
+      withData: true,
+    );
+    if (result == null || result.files.isEmpty) return;
+    final file = result.files.first;
+    if (file.bytes == null) return;
+    if (file.bytes!.length > _maxFileSizeBytes) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('File too large. Maximum size is 700 KB. Please compress the image or use a smaller file.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+    setState(() {
+      _driverLicenseBase64 = base64Encode(file.bytes!);
+      _driverLicenseFileName = file.name;
+    });
+  }
+
+  Future<void> _pickProofOfPurpose() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
+      withData: true,
+    );
+    if (result == null || result.files.isEmpty) return;
+    final file = result.files.first;
+    if (file.bytes == null) return;
+    if (file.bytes!.length > _maxFileSizeBytes) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('File too large. Maximum size is 700 KB. Please compress the image or use a smaller file.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+    setState(() {
+      _proofOfPurposeBase64 = base64Encode(file.bytes!);
+      _proofOfPurposeFileName = file.name;
+    });
+  }
+
+  Future<void> _showTermsAndSubmit() async {
     if (!_formKey.currentState!.validate()) return;
-    
+
     if (_startDate == null || _endDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please select start and end dates')),
       );
       return;
     }
+
+    if (!_withDriver && _driverLicenseBase64 == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Driver\'s License attachment is required for self-drive.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (_proofOfPurposeBase64 == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Proof of Purpose attachment is required.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final days = _calculateDays();
+    if (widget.van.maxRentalDays != null && widget.van.maxRentalDays! > 0 && days > widget.van.maxRentalDays!) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Rental period exceeds the maximum of ${widget.van.maxRentalDays} days'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => VanRentalTermsModal(
+        totalAmount: _calculateTotal(),
+        depositAmount: _calculateDeposit(),
+        onAccept: _submitRequest,
+      ),
+    );
+  }
+
+  Future<void> _submitRequest() async {
 
     final days = _calculateDays();
     // Fix: only check max if it's set and greater than 0
@@ -1459,11 +1761,17 @@ class _RentalRequestFormScreenState extends State<RentalRequestFormScreen> {
         totalDays: _calculateDays(),
         pricePerDay: widget.van.pricePerDay,
         totalAmount: _calculateTotal(),
+        depositAmount: _calculateDeposit(),
         pickupLocation: _pickupController.text,
         dropoffLocation: _dropoffController.text,
         purpose: finalPurpose,
         specialRequirements:
             _requirementsController.text.isEmpty ? null : _requirementsController.text,
+        withDriver: _withDriver,
+        driverLicenseBase64: _withDriver ? null : _driverLicenseBase64,
+        driverLicenseFileName: _withDriver ? null : _driverLicenseFileName,
+        proofOfPurposeBase64: _proofOfPurposeBase64,
+        proofOfPurposeFileName: _proofOfPurposeFileName,
         status: VanRentalStatus.pending,
         createdAt: DateTime.now(),
       );
@@ -1700,13 +2008,30 @@ class _RentalRequestFormScreenState extends State<RentalRequestFormScreen> {
                                     fontWeight: FontWeight.bold,
                                     color: exceedsMax ? Colors.red : Colors.black87,
                                   )),
-                              Text(
-                                'Total: ${CurrencyFormatter.formatPesoWithDecimals(_calculateTotal())}',
-                                style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: exceedsMax
-                                        ? Colors.red
-                                        : const Color(0xFF2196F3)),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    'Base: ${CurrencyFormatter.formatPesoWithDecimals(widget.van.pricePerDay * days)}',
+                                    style: TextStyle(
+                                        fontSize: 12,
+                                        color: exceedsMax ? Colors.red : Colors.black54),
+                                  ),
+                                  if (_withDriver)
+                                    Text(
+                                      'Driver: ${CurrencyFormatter.formatPesoWithDecimals(_driverFee)}',
+                                      style: const TextStyle(
+                                          fontSize: 12, color: Colors.black54),
+                                    ),
+                                  Text(
+                                    'Total: ${CurrencyFormatter.formatPesoWithDecimals(_calculateTotal())}',
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: exceedsMax
+                                            ? Colors.red
+                                            : const Color(0xFF2196F3)),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
@@ -1811,6 +2136,151 @@ class _RentalRequestFormScreenState extends State<RentalRequestFormScreen> {
               ),
 
               const SizedBox(height: 24),
+              const Text('Driver Option',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 12),
+
+              Card(
+                elevation: 1,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: BorderSide(
+                        color: _withDriver
+                            ? const Color(0xFF2196F3)
+                            : Colors.grey[300]!,
+                        width: _withDriver ? 1.5 : 1)),
+                child: CheckboxListTile(
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  value: _withDriver,
+                  onChanged: (val) => setState(() => _withDriver = val ?? false),
+                  activeColor: const Color(0xFF2196F3),
+                  checkboxShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                  title: const Text('With Driver',
+                      style: TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: Text(
+                    _withDriver
+                        ? 'Driver fee: ${CurrencyFormatter.formatPesoWithDecimals(_driverFee)} added to total'
+                        : 'Add a professional driver (+₱1,000.00)',
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: _withDriver
+                            ? const Color(0xFF2196F3)
+                            : Colors.grey[600]),
+                  ),
+                  secondary: CircleAvatar(
+                    backgroundColor: _withDriver
+                        ? const Color(0xFF2196F3).withOpacity(0.1)
+                        : Colors.grey[100],
+                    child: Icon(Icons.person_pin_circle_outlined,
+                        color: _withDriver
+                            ? const Color(0xFF2196F3)
+                            : Colors.grey[500]),
+                  ),
+                ),
+              ),
+
+              // Driver's license upload — shown only for self-drive
+              if (!_withDriver) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.orange[50],
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: _driverLicenseBase64 == null
+                          ? Colors.orange[300]!
+                          : Colors.green[400]!,
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.badge_outlined,
+                            color: _driverLicenseBase64 == null
+                                ? Colors.orange[700]
+                                : Colors.green[700],
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            "Driver's License",
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                              color: _driverLicenseBase64 == null
+                                  ? Colors.orange[800]
+                                  : Colors.green[800],
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '(Required for Self-Drive)',
+                            style: TextStyle(
+                                fontSize: 11, color: Colors.grey[600]),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      if (_driverLicenseBase64 != null) ...[
+                        Row(
+                          children: [
+                            Icon(Icons.check_circle,
+                                color: Colors.green[600], size: 18),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                _driverLicenseFileName ?? 'File attached',
+                                style: TextStyle(
+                                    color: Colors.green[700], fontSize: 13),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () => setState(() {
+                                _driverLicenseBase64 = null;
+                                _driverLicenseFileName = null;
+                              }),
+                              style: TextButton.styleFrom(
+                                  foregroundColor: Colors.red),
+                              child: const Text('Remove',
+                                  style: TextStyle(fontSize: 12)),
+                            ),
+                          ],
+                        ),
+                      ] else ...[
+                        Text(
+                          'Attach a clear photo or scan of your driver\'s license.\nAccepted: JPG, PNG, PDF — Max 700 KB',
+                          style: TextStyle(
+                              fontSize: 12, color: Colors.grey[600]),
+                        ),
+                        const SizedBox(height: 10),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: _pickDriverLicense,
+                            icon: const Icon(Icons.upload_file, size: 18),
+                            label: const Text('Choose File'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.orange[700],
+                              side: BorderSide(color: Colors.orange[400]!),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8)),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+
+              const SizedBox(height: 24),
               const Text('Additional Information',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               const SizedBox(height: 12),
@@ -1819,7 +2289,7 @@ class _RentalRequestFormScreenState extends State<RentalRequestFormScreen> {
               DropdownButtonFormField<String>(
                 value: _selectedPurpose,
                 decoration: const InputDecoration(
-                  labelText: 'Purpose (Optional)',
+                  labelText: 'Purpose *',
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.description),
                 ),
@@ -1837,6 +2307,12 @@ class _RentalRequestFormScreenState extends State<RentalRequestFormScreen> {
                       _customPurposeController.clear();
                     }
                   });
+                },
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please select a purpose';
+                  }
+                  return null;
                 },
               ),
               
@@ -1861,30 +2337,292 @@ class _RentalRequestFormScreenState extends State<RentalRequestFormScreen> {
                 ),
               ],
 
+              // Proof of Purpose attachment
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: _proofOfPurposeBase64 == null
+                      ? Colors.purple[50]
+                      : Colors.green[50],
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: _proofOfPurposeBase64 == null
+                        ? Colors.purple[300]!
+                        : Colors.green[400]!,
+                    width: 1.5,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.folder_copy_outlined,
+                          color: _proofOfPurposeBase64 == null
+                              ? Colors.purple[700]
+                              : Colors.green[700],
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Proof of Purpose',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                            color: _proofOfPurposeBase64 == null
+                                ? Colors.purple[800]
+                                : Colors.green[800],
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '(Required)',
+                          style: TextStyle(
+                              fontSize: 11, color: Colors.red[600]),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    if (_proofOfPurposeBase64 != null) ...[
+                      Row(
+                        children: [
+                          Icon(Icons.check_circle,
+                              color: Colors.green[600], size: 18),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              _proofOfPurposeFileName ?? 'File attached',
+                              style: TextStyle(
+                                  color: Colors.green[700], fontSize: 13),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () => setState(() {
+                              _proofOfPurposeBase64 = null;
+                              _proofOfPurposeFileName = null;
+                            }),
+                            style: TextButton.styleFrom(
+                                foregroundColor: Colors.red),
+                            child: const Text('Remove',
+                                style: TextStyle(fontSize: 12)),
+                          ),
+                        ],
+                      ),
+                    ] else ...[
+                      Text(
+                        'Attach a document supporting your trip purpose\n(e.g., itinerary, invitation letter, booking confirmation).\nAccepted: JPG, PNG, PDF — Max 700 KB',
+                        style:
+                            TextStyle(fontSize: 12, color: Colors.grey[700]),
+                      ),
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: _pickProofOfPurpose,
+                          icon: const Icon(Icons.upload_file, size: 18),
+                          label: const Text('Choose File'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.purple[700],
+                            side: BorderSide(color: Colors.purple[400]!),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8)),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+
               const SizedBox(height: 32),
+
+              // ── Deposit Summary Card ──────────────────────────────────
+              if (_startDate != null && _endDate != null) ...[  
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2196F3).withOpacity(0.06),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFF2196F3).withOpacity(0.3)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.receipt_long, color: Color(0xFF2196F3), size: 20),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'Rental Cost Summary',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                              color: Color(0xFF1565C0),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      _buildCostRow(
+                        'Base Rental (${_calculateDays()} day${_calculateDays() == 1 ? '' : 's'})',
+                        CurrencyFormatter.formatPesoWithDecimals(
+                            widget.van.pricePerDay * _calculateDays()),
+                      ),
+                      if (_withDriver)
+                        _buildCostRow(
+                          'Driver Fee',
+                          CurrencyFormatter.formatPesoWithDecimals(_driverFee),
+                        ),
+                      const Divider(height: 20),
+                      _buildCostRow(
+                        'Total Rental Price',
+                        CurrencyFormatter.formatPesoWithDecimals(_calculateTotal()),
+                        bold: true,
+                      ),
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: Colors.amber[50],
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.amber[400]!),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.lock_outline,
+                                    size: 16, color: Colors.amber[800]),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Required Deposit (50%)',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13,
+                                    color: Colors.amber[900],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Text(
+                              CurrencyFormatter.formatPesoWithDecimals(
+                                  _calculateDeposit()),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                                color: Colors.amber[900],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '* A 50% deposit is required upon approval of your rental request.',
+                        style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ],
+
+              const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _isSubmitting ? null : _submitRequest,
+                  onPressed: _isSubmitting ? null : _showTermsAndSubmit,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF2196F3),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
                   ),
                   child: _isSubmitting
                       ? const SizedBox(
                           height: 20,
                           width: 20,
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                          child: CircularProgressIndicator(
+                              color: Colors.white, strokeWidth: 2),
                         )
-                      : const Text('Submit Request', style: TextStyle(fontSize: 16)),
+                      : const Text('Submit Request',
+                          style: TextStyle(fontSize: 16)),
                 ),
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildCostRow(String label, String value, {bool bold = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label,
+              style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: bold ? FontWeight.bold : FontWeight.normal,
+                  color: bold ? Colors.black87 : Colors.grey[700])),
+          Text(value,
+              style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: bold ? FontWeight.bold : FontWeight.normal,
+                  color: bold ? const Color(0xFF2196F3) : Colors.black87)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPolicySection({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required List<String> points,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 16, color: iconColor),
+            const SizedBox(width: 6),
+            Text(
+              title,
+              style: const TextStyle(
+                  fontWeight: FontWeight.w700, fontSize: 13),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        ...points.map(
+          (p) => Padding(
+            padding: const EdgeInsets.only(left: 22, bottom: 4),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('• ',
+                    style: TextStyle(
+                        color: iconColor, fontWeight: FontWeight.bold)),
+                Expanded(
+                  child: Text(p,
+                      style: TextStyle(
+                          fontSize: 12, color: Colors.grey[800], height: 1.4)),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

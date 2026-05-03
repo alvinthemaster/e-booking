@@ -30,6 +30,7 @@ class VanRentalRequest {
   final int totalDays;
   final double pricePerDay;
   final double totalAmount;
+  final double depositAmount; // 50% of totalAmount
   
   // Location details
   final String pickupLocation;
@@ -38,7 +39,16 @@ class VanRentalRequest {
   // Additional details
   final String? purpose;
   final String? specialRequirements;
+  final bool withDriver;
   
+  // Self-drive attachment (required when withDriver is false)
+  final String? driverLicenseBase64;
+  final String? driverLicenseFileName;
+
+  // Proof of purpose attachment (required)
+  final String? proofOfPurposeBase64;
+  final String? proofOfPurposeFileName;
+
   // Status and timestamps
   final VanRentalStatus status;
   final DateTime createdAt;
@@ -61,10 +71,16 @@ class VanRentalRequest {
     required this.totalDays,
     required this.pricePerDay,
     required this.totalAmount,
+    required this.depositAmount,
     required this.pickupLocation,
     required this.dropoffLocation,
     this.purpose,
     this.specialRequirements,
+    this.withDriver = false,
+    this.driverLicenseBase64,
+    this.driverLicenseFileName,
+    this.proofOfPurposeBase64,
+    this.proofOfPurposeFileName,
     required this.status,
     required this.createdAt,
     this.confirmedAt,
@@ -89,10 +105,16 @@ class VanRentalRequest {
       'totalDays': totalDays,
       'pricePerDay': pricePerDay,
       'totalAmount': totalAmount,
+      'depositAmount': depositAmount,
       'pickupLocation': pickupLocation,
       'dropoffLocation': dropoffLocation,
       'purpose': purpose,
       'specialRequirements': specialRequirements,
+      'withDriver': withDriver,
+      'driverLicenseBase64': driverLicenseBase64,
+      'driverLicenseFileName': driverLicenseFileName,
+      'proofOfPurposeBase64': proofOfPurposeBase64,
+      'proofOfPurposeFileName': proofOfPurposeFileName,
       'status': status.name,
       'createdAt': Timestamp.fromDate(createdAt),
       'confirmedAt': confirmedAt != null ? Timestamp.fromDate(confirmedAt!) : null,
@@ -119,10 +141,16 @@ class VanRentalRequest {
         totalDays: (map['totalDays'] as num? ?? 0).toInt(),
         pricePerDay: (map['pricePerDay'] as num? ?? 0.0).toDouble(),
         totalAmount: (map['totalAmount'] as num? ?? 0.0).toDouble(),
+        depositAmount: (map['depositAmount'] as num? ?? 0.0).toDouble(),
         pickupLocation: map['pickupLocation'] as String? ?? '',
         dropoffLocation: map['dropoffLocation'] as String? ?? '',
         purpose: map['purpose'] as String?,
         specialRequirements: map['specialRequirements'] as String?,
+        withDriver: map['withDriver'] as bool? ?? false,
+        driverLicenseBase64: map['driverLicenseBase64'] as String?,
+        driverLicenseFileName: map['driverLicenseFileName'] as String?,
+        proofOfPurposeBase64: map['proofOfPurposeBase64'] as String?,
+        proofOfPurposeFileName: map['proofOfPurposeFileName'] as String?,
         status: _parseStatus(map['status']),
         createdAt: _parseTimestamp(map['createdAt']),
         confirmedAt: map['confirmedAt'] != null ? _parseTimestamp(map['confirmedAt']) : null,
@@ -146,6 +174,7 @@ class VanRentalRequest {
         totalDays: 0,
         pricePerDay: 0.0,
         totalAmount: 0.0,
+        depositAmount: 0.0,
         pickupLocation: map['pickupLocation'] as String? ?? '',
         dropoffLocation: map['dropoffLocation'] as String? ?? '',
         status: VanRentalStatus.pending,

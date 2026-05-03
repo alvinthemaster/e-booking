@@ -937,10 +937,55 @@ class _AllTab extends StatelessWidget {
 
 // ── NORMAL BOOKINGS TAB ──────────────────────────────────────────────────────
 
-class _NormalTab extends StatelessWidget {
+class _NormalTab extends StatefulWidget {
   final Widget Function(Booking) onBuildBookingCard;
 
   const _NormalTab({required this.onBuildBookingCard});
+
+  @override
+  State<_NormalTab> createState() => _NormalTabState();
+}
+
+class _NormalTabState extends State<_NormalTab> {
+  BookingStatus? _selectedStatus;
+
+  static const _statuses = BookingStatus.values;
+
+  String _statusLabel(BookingStatus s) {
+    switch (s) {
+      case BookingStatus.pending: return 'Pending';
+      case BookingStatus.confirmed: return 'Confirmed';
+      case BookingStatus.onboard: return 'On Board';
+      case BookingStatus.completed: return 'Completed';
+      case BookingStatus.cancelled: return 'Cancelled';
+      case BookingStatus.cancelledByAdmin: return 'By Admin';
+      case BookingStatus.failed: return 'Failed';
+    }
+  }
+
+  IconData _statusIcon(BookingStatus s) {
+    switch (s) {
+      case BookingStatus.pending: return Icons.hourglass_empty;
+      case BookingStatus.confirmed: return Icons.verified_outlined;
+      case BookingStatus.onboard: return Icons.directions_bus;
+      case BookingStatus.completed: return Icons.check_circle_outline;
+      case BookingStatus.cancelled: return Icons.cancel_outlined;
+      case BookingStatus.cancelledByAdmin: return Icons.block;
+      case BookingStatus.failed: return Icons.error_outline;
+    }
+  }
+
+  Color _statusColor(BookingStatus s) {
+    switch (s) {
+      case BookingStatus.pending: return const Color(0xFFFF9800);
+      case BookingStatus.confirmed: return const Color(0xFF2196F3);
+      case BookingStatus.onboard: return const Color(0xFF00BCD4);
+      case BookingStatus.completed: return const Color(0xFF4CAF50);
+      case BookingStatus.cancelled: return const Color(0xFF757575);
+      case BookingStatus.cancelledByAdmin: return const Color(0xFFF44336);
+      case BookingStatus.failed: return const Color(0xFFE91E63);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -948,8 +993,7 @@ class _NormalTab extends StatelessWidget {
       builder: (context, provider, _) {
         if (provider.isLoading) {
           return const Center(
-              child: CircularProgressIndicator(
-                  color: Color(0xFF2196F3)));
+              child: CircularProgressIndicator(color: Color(0xFF2196F3)));
         }
 
         if (provider.bookings.isEmpty) {
@@ -961,18 +1005,116 @@ class _NormalTab extends StatelessWidget {
           );
         }
 
-        return RefreshIndicator(
-          onRefresh: () async => provider.loadBookings(),
-          color: const Color(0xFF2196F3),
-          child: ListView.builder(
-            padding: const EdgeInsets.symmetric(
-                horizontal: 16, vertical: 12),
-            itemCount: provider.bookings.length,
-            itemBuilder: (ctx, i) =>
-                onBuildBookingCard(provider.bookings[i]),
-          ),
+        final all = provider.bookings;
+        final filtered = _selectedStatus == null
+            ? all
+            : all.where((b) => b.bookingStatus == _selectedStatus).toList();
+
+        return Column(
+          children: [
+            _buildFilterChips(all),
+            Expanded(
+              child: filtered.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.inbox, size: 56, color: Colors.grey[300]),
+                          const SizedBox(height: 12),
+                          Text(
+                            'No ${_statusLabel(_selectedStatus!)} bookings',
+                            style: TextStyle(fontSize: 15, color: Colors.grey[500]),
+                          ),
+                        ],
+                      ),
+                    )
+                  : RefreshIndicator(
+                      onRefresh: () async => provider.loadBookings(),
+                      color: const Color(0xFF2196F3),
+                      child: ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                        itemCount: filtered.length,
+                        itemBuilder: (ctx, i) =>
+                            widget.onBuildBookingCard(filtered[i]),
+                      ),
+                    ),
+            ),
+          ],
         );
       },
+    );
+  }
+
+  Widget _buildFilterChips(List<Booking> all) {
+    return Container(
+      color: Colors.white,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        child: Row(
+          children: [
+            _chip(null, 'All', Icons.list_alt, all.length),
+            const SizedBox(width: 8),
+            ..._statuses.map((s) => Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: _chip(
+                    s,
+                    _statusLabel(s),
+                    _statusIcon(s),
+                    all.where((b) => b.bookingStatus == s).length,
+                  ),
+                )),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _chip(BookingStatus? status, String label, IconData icon, int count) {
+    final selected = _selectedStatus == status;
+    final color = status == null ? const Color(0xFF2196F3) : _statusColor(status);
+    return GestureDetector(
+      onTap: () => setState(() => _selectedStatus = status),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(
+          color: selected ? color : Colors.grey[100],
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: selected ? color : Colors.grey[300]!),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: selected ? Colors.white : Colors.grey[600]),
+            const SizedBox(width: 5),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: selected ? Colors.white : Colors.grey[700],
+              ),
+            ),
+            const SizedBox(width: 5),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+              decoration: BoxDecoration(
+                color: selected ? Colors.white.withOpacity(0.3) : color.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                '$count',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: selected ? Colors.white : color,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -993,8 +1135,8 @@ class _DocumentsTab extends StatefulWidget {
 }
 
 class _DocumentsTabState extends State<_DocumentsTab> {
-  // Cache the stream so it isn't recreated on every rebuild
   late final Stream<List<DocumentDelivery>> _stream;
+  DeliveryStatus? _selectedStatus;
 
   @override
   void initState() {
@@ -1002,12 +1144,102 @@ class _DocumentsTabState extends State<_DocumentsTab> {
     _stream = widget.deliveryService.streamUserDeliveries();
   }
 
+  Color _deliveryChipColor(DeliveryStatus s) {
+    switch (s) {
+      case DeliveryStatus.pending: return const Color(0xFFFF9800);
+      case DeliveryStatus.inTransit: return const Color(0xFF2196F3);
+      case DeliveryStatus.delivered: return const Color(0xFF4CAF50);
+      case DeliveryStatus.cancelled: return const Color(0xFF757575);
+    }
+  }
+
+  IconData _deliveryChipIcon(DeliveryStatus s) {
+    switch (s) {
+      case DeliveryStatus.pending: return Icons.hourglass_empty;
+      case DeliveryStatus.inTransit: return Icons.local_shipping_outlined;
+      case DeliveryStatus.delivered: return Icons.check_circle_outline;
+      case DeliveryStatus.cancelled: return Icons.cancel_outlined;
+    }
+  }
+
+  Widget _buildDeliveryFilterChips(List<DocumentDelivery> all) {
+    return Container(
+      color: Colors.white,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        child: Row(
+          children: [
+            _deliveryChip(null, 'All', Icons.list_alt, all.length),
+            const SizedBox(width: 8),
+            ...DeliveryStatus.values.map((s) => Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: _deliveryChip(
+                    s,
+                    s.label,
+                    _deliveryChipIcon(s),
+                    all.where((d) => d.status == s).length,
+                  ),
+                )),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _deliveryChip(DeliveryStatus? status, String label, IconData icon, int count) {
+    final selected = _selectedStatus == status;
+    final color = status == null ? const Color(0xFF2196F3) : _deliveryChipColor(status);
+    return GestureDetector(
+      onTap: () => setState(() => _selectedStatus = status),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(
+          color: selected ? color : Colors.grey[100],
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: selected ? color : Colors.grey[300]!),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: selected ? Colors.white : Colors.grey[600]),
+            const SizedBox(width: 5),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: selected ? Colors.white : Colors.grey[700],
+              ),
+            ),
+            const SizedBox(width: 5),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+              decoration: BoxDecoration(
+                color: selected ? Colors.white.withOpacity(0.3) : color.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                '$count',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: selected ? Colors.white : color,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<List<DocumentDelivery>>(
       stream: _stream,
       builder: (context, snapshot) {
-        // Show loading while waiting for auth or first Firestore response
         if (snapshot.connectionState == ConnectionState.waiting ||
             snapshot.connectionState == ConnectionState.none) {
           return const Center(
@@ -1027,20 +1259,45 @@ class _DocumentsTabState extends State<_DocumentsTab> {
           );
         }
 
-        final deliveries = snapshot.data ?? [];
+        final all = snapshot.data ?? [];
 
-        if (deliveries.isEmpty) {
+        if (all.isEmpty) {
           return const _EmptyState(
             icon: Icons.description,
             message: 'No document deliveries yet',
           );
         }
 
-        return ListView.builder(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          itemCount: deliveries.length,
-          itemBuilder: (ctx, i) => widget.onBuildDeliveryCard(deliveries[i]),
+        final filtered = _selectedStatus == null
+            ? all
+            : all.where((d) => d.status == _selectedStatus).toList();
+
+        return Column(
+          children: [
+            _buildDeliveryFilterChips(all),
+            Expanded(
+              child: filtered.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.inbox, size: 56, color: Colors.grey[300]),
+                          const SizedBox(height: 12),
+                          Text(
+                            'No ${_selectedStatus!.label} deliveries',
+                            style: TextStyle(fontSize: 15, color: Colors.grey[500]),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                      itemCount: filtered.length,
+                      itemBuilder: (ctx, i) =>
+                          widget.onBuildDeliveryCard(filtered[i]),
+                    ),
+            ),
+          ],
         );
       },
     );

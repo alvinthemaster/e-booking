@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import '../models/booking_models.dart';
 import 'payment_screen.dart';
 import '../utils/currency_formatter.dart';
@@ -42,12 +44,43 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
   static const double _childPetPrice = 50.0;
   static const double _baggagePrice = 150.0;
 
+  // Proof of trip attachment
+  String? _proofOfTripBase64;
+  String? _proofOfTripFileName;
+  static const int _maxFileSizeBytes = 700 * 1024; // 700 KB
+
   @override
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickProofOfTrip() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
+      withData: true,
+    );
+    if (result == null || result.files.isEmpty) return;
+    final file = result.files.first;
+    if (file.bytes == null) return;
+    if (file.bytes!.length > _maxFileSizeBytes) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('File too large. Maximum size is 700 KB. Please compress the image or use a smaller file.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+    setState(() {
+      _proofOfTripBase64 = base64Encode(file.bytes!);
+      _proofOfTripFileName = file.name;
+    });
   }
   
   double get _addOnsTotal {
@@ -449,6 +482,108 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
 
                     const SizedBox(height: 24),
 
+                    // Proof of Trip Attachment
+                    const SizedBox(height: 24),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: _proofOfTripBase64 == null
+                            ? Colors.amber[50]
+                            : Colors.green[50],
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: _proofOfTripBase64 == null
+                              ? Colors.amber[400]!
+                              : Colors.green[400]!,
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.attach_file,
+                                color: _proofOfTripBase64 == null
+                                    ? Colors.amber[700]
+                                    : Colors.green[700],
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Proof of Trip',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: _proofOfTripBase64 == null
+                                      ? Colors.amber[900]
+                                      : Colors.green[800],
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '(Required)',
+                                style: TextStyle(
+                                    fontSize: 11, color: Colors.red[600]),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          if (_proofOfTripBase64 != null) ...[
+                            Row(
+                              children: [
+                                Icon(Icons.check_circle,
+                                    color: Colors.green[600], size: 18),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    _proofOfTripFileName ?? 'File attached',
+                                    style: TextStyle(
+                                        color: Colors.green[700], fontSize: 13),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                TextButton(
+                                  onPressed: () => setState(() {
+                                    _proofOfTripBase64 = null;
+                                    _proofOfTripFileName = null;
+                                  }),
+                                  style: TextButton.styleFrom(
+                                      foregroundColor: Colors.red),
+                                  child: const Text('Remove',
+                                      style: TextStyle(fontSize: 12)),
+                                ),
+                              ],
+                            ),
+                          ] else ...[
+                            Text(
+                              'Attach your itinerary, booking confirmation, or any proof of trip.\nAccepted: JPG, PNG, PDF — Max 700 KB',
+                              style: TextStyle(
+                                  fontSize: 12, color: Colors.grey[700]),
+                            ),
+                            const SizedBox(height: 10),
+                            SizedBox(
+                              width: double.infinity,
+                              child: OutlinedButton.icon(
+                                onPressed: _pickProofOfTrip,
+                                icon: const Icon(Icons.upload_file, size: 18),
+                                label: const Text('Choose File'),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: Colors.amber[800],
+                                  side: BorderSide(
+                                      color: Colors.amber[600]!),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius:
+                                          BorderRadius.circular(8)),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
                     // Terms and Conditions
                     Container(
                       padding: const EdgeInsets.all(16),
@@ -651,6 +786,15 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
 
   void _proceedToPayment() {
     if (_formKey.currentState!.validate()) {
+      if (_proofOfTripBase64 == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Proof of Trip attachment is required before proceeding.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -669,6 +813,8 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
             petCount: _petCount,
             baggageCount: _baggageCount,
             addOnsAmount: _addOnsTotal,
+            proofOfTripBase64: _proofOfTripBase64,
+            proofOfTripFileName: _proofOfTripFileName,
           ),
         ),
       );

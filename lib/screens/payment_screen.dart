@@ -23,6 +23,8 @@ class PaymentScreen extends StatefulWidget {
   final int petCount;
   final int baggageCount;
   final double addOnsAmount;
+  final String? proofOfTripBase64;
+  final String? proofOfTripFileName;
 
   const PaymentScreen({
     super.key,
@@ -40,6 +42,8 @@ class PaymentScreen extends StatefulWidget {
     this.petCount = 0,
     this.baggageCount = 0,
     this.addOnsAmount = 0.0,
+    this.proofOfTripBase64,
+    this.proofOfTripFileName,
   });
 
   @override
@@ -595,6 +599,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
               'regularSeats': widget.selectedSeats.where((s) => !s.hasDiscount).map((s) => s.id).toList(),
               'discountedSeats': widget.selectedSeats.where((s) => s.hasDiscount).map((s) => s.id).toList(),
             },
+            proofOfTripBase64: widget.proofOfTripBase64,
+            proofOfTripFileName: widget.proofOfTripFileName,
           );
 
           // Reserve seats locally

@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -1617,8 +1619,28 @@ class _RentalRequestFormScreenState extends State<RentalRequestFormScreen> {
     );
     if (result == null || result.files.isEmpty) return;
     final file = result.files.first;
-    if (file.bytes == null) return;
-    if (file.bytes!.length > _maxFileSizeBytes) {
+
+    // On Android, bytes can be null when picked from content URIs (Drive, Photos).
+    // Fall back to reading from file.path on non-web platforms.
+    var bytes = file.bytes;
+    if (!kIsWeb && bytes == null && file.path != null) {
+      try {
+        bytes = await File(file.path!).readAsBytes();
+      } catch (_) {}
+    }
+
+    if (bytes == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not read the selected file. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+    if (bytes.length > _maxFileSizeBytes) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -1630,7 +1652,7 @@ class _RentalRequestFormScreenState extends State<RentalRequestFormScreen> {
       return;
     }
     setState(() {
-      _driverLicenseBase64 = base64Encode(file.bytes!);
+      _driverLicenseBase64 = base64Encode(bytes!);
       _driverLicenseFileName = file.name;
     });
   }
@@ -1643,8 +1665,26 @@ class _RentalRequestFormScreenState extends State<RentalRequestFormScreen> {
     );
     if (result == null || result.files.isEmpty) return;
     final file = result.files.first;
-    if (file.bytes == null) return;
-    if (file.bytes!.length > _maxFileSizeBytes) {
+
+    var bytes = file.bytes;
+    if (!kIsWeb && bytes == null && file.path != null) {
+      try {
+        bytes = await File(file.path!).readAsBytes();
+      } catch (_) {}
+    }
+
+    if (bytes == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not read the selected file. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+    if (bytes.length > _maxFileSizeBytes) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -1656,7 +1696,7 @@ class _RentalRequestFormScreenState extends State<RentalRequestFormScreen> {
       return;
     }
     setState(() {
-      _proofOfPurposeBase64 = base64Encode(file.bytes!);
+      _proofOfPurposeBase64 = base64Encode(bytes!);
       _proofOfPurposeFileName = file.name;
     });
   }

@@ -1,6 +1,13 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 import '../models/booking_models.dart';
 import '../providers/payment_provider.dart';
 import '../providers/booking_provider.dart';
@@ -51,6 +58,10 @@ class PaymentScreen extends StatefulWidget {
 }
 
 class _PaymentScreenState extends State<PaymentScreen> {
+  Uint8List? _proofOfPaymentBytes;
+  String? _proofOfPaymentFileName;
+  bool _isUploadingProof = false;
+
   @override
   void initState() {
     super.initState();
@@ -243,6 +254,179 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                 paymentProvider,
                               );
                             }),
+                            const SizedBox(height: 8),
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF2196F3).withOpacity(0.08),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Text(
+                                'GCash only: scan the QR code below, complete payment, then upload your proof of payment.',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Color(0xFF1565C0),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // GCash QR
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.grey.withOpacity(0.1),
+                              spreadRadius: 1,
+                              blurRadius: 5,
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'GCash QR Code',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            Center(
+                              child: Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: Colors.grey[300]!),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Column(
+                                  children: [
+                                    Image.asset(
+                                      'assets/images/gcash_qr.png',
+                                      width: 190,
+                                      height: 190,
+                                      fit: BoxFit.contain,
+                                      errorBuilder: (context, error, stackTrace) {
+                                        return Container(
+                                          width: 190,
+                                          height: 190,
+                                          color: Colors.grey[100],
+                                          alignment: Alignment.center,
+                                          child: const Padding(
+                                            padding: EdgeInsets.all(12.0),
+                                            child: Text(
+                                              'Missing assets/images/gcash_qr.png',
+                                              textAlign: TextAlign.center,
+                                              style: TextStyle(fontSize: 12),
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                    const SizedBox(height: 10),
+                                    const Text(
+                                      'Use your GCash app to scan and pay',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            SizedBox(
+                              width: double.infinity,
+                              child: OutlinedButton.icon(
+                                onPressed: _downloadGcashQr,
+                                icon: const Icon(Icons.download),
+                                label: const Text('Download GCash QR'),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Proof of payment upload
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.grey.withOpacity(0.1),
+                              spreadRadius: 1,
+                              blurRadius: 5,
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Proof of Payment',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Upload your payment screenshot (JPG/PNG, max 4MB).',
+                              style: TextStyle(fontSize: 13, color: Colors.grey),
+                            ),
+                            const SizedBox(height: 12),
+                            SizedBox(
+                              width: double.infinity,
+                              child: OutlinedButton.icon(
+                                onPressed: paymentProvider.isProcessing || _isUploadingProof
+                                    ? null
+                                    : _pickProofOfPayment,
+                                icon: const Icon(Icons.upload_file),
+                                label: Text(
+                                  _proofOfPaymentFileName == null
+                                      ? 'Upload Proof of Payment'
+                                      : 'Change Uploaded Proof',
+                                ),
+                              ),
+                            ),
+                            if (_proofOfPaymentFileName != null) ...[
+                              const SizedBox(height: 10),
+                              Text(
+                                _proofOfPaymentFileName!,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                            if (_proofOfPaymentBytes != null) ...[
+                              const SizedBox(height: 12),
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: Image.memory(
+                                  _proofOfPaymentBytes!,
+                                  height: 180,
+                                  width: double.infinity,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -314,7 +498,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       height: 56,
                       child: ElevatedButton(
                         onPressed:
-                            paymentProvider.isProcessing ||
+                          paymentProvider.isProcessing ||
+                            _isUploadingProof ||
                                 paymentProvider.currentStatus ==
                                     PaymentStatus.paid
                             ? null
@@ -331,7 +516,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                           ),
                           elevation: 2,
                         ),
-                        child: paymentProvider.isProcessing
+                        child: paymentProvider.isProcessing || _isUploadingProof
                             ? const Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
@@ -513,14 +698,106 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
+  Future<void> _pickProofOfPayment() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['jpg', 'jpeg', 'png'],
+        withData: true,
+      );
+
+      if (result == null || result.files.isEmpty) {
+        return;
+      }
+
+      final file = result.files.single;
+      final bytes = file.bytes;
+      if (bytes == null) {
+        throw Exception('Unable to read the selected file');
+      }
+
+      // Firestore document limit is 1MB; keep image safely below when base64 encoded.
+      const maxBytes = 600 * 1024;
+      if (bytes.length > maxBytes) {
+        throw Exception('File is too large. Maximum is 600KB for Spark-safe upload.');
+      }
+
+      setState(() {
+        _proofOfPaymentBytes = bytes;
+        _proofOfPaymentFileName = file.name;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Failed to upload proof: ${e.toString().replaceAll('Exception: ', '')}',
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _downloadGcashQr() async {
+    try {
+      final qrBytes = (await rootBundle.load('assets/images/gcash_qr.png'))
+          .buffer
+          .asUint8List();
+      final qrImage = pw.MemoryImage(qrBytes);
+
+      final pdf = pw.Document();
+      pdf.addPage(
+        pw.Page(
+          build: (context) => pw.Center(
+            child: pw.Column(
+              mainAxisSize: pw.MainAxisSize.min,
+              children: [
+                pw.Text(
+                  'GCash Payment QR',
+                  style: pw.TextStyle(
+                    fontSize: 22,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+                pw.SizedBox(height: 16),
+                pw.Image(
+                  qrImage,
+                  width: 220,
+                  height: 220,
+                ),
+                pw.SizedBox(height: 16),
+                pw.Text(
+                  'Scan this QR in your GCash app to pay.',
+                  style: const pw.TextStyle(fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      await Printing.layoutPdf(
+        name: 'gcash_qr_payment.pdf',
+        onLayout: (format) async => pdf.save(),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Failed to download QR: ${e.toString().replaceAll('Exception: ', '')}',
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   IconData _getPaymentMethodIcon(String method) {
     switch (method) {
       case 'GCash':
         return Icons.account_balance_wallet;
-      case 'Maya':
-        return Icons.credit_card;
-      case 'PayPal':
-        return Icons.paypal;
       default:
         return Icons.payment;
     }
@@ -546,10 +823,17 @@ class _PaymentScreenState extends State<PaymentScreen> {
         throw Exception('No seats selected');
       }
 
+      if (_proofOfPaymentBytes == null || _proofOfPaymentFileName == null) {
+        throw Exception('Please upload proof of payment before continuing.');
+      }
+
+      final proofDraftId = 'UVE${DateTime.now().millisecondsSinceEpoch}';
+      final proofOfPaymentBase64 = base64Encode(_proofOfPaymentBytes!);
+
       final success = await paymentProvider.processPayment(
-        bookingId: 'UVE${DateTime.now().millisecondsSinceEpoch}',
+        bookingId: proofDraftId,
         amount: widget.totalAmount + widget.addOnsAmount,
-        method: paymentProvider.selectedMethod,
+        method: 'GCash',
       );
 
       if (success && mounted) {
@@ -591,6 +875,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
             },
             proofOfTripBase64: widget.proofOfTripBase64,
             proofOfTripFileName: widget.proofOfTripFileName,
+            proofOfPaymentBase64: proofOfPaymentBase64,
+            proofOfPaymentFileName: _proofOfPaymentFileName,
           );
 
           // Reserve seats locally

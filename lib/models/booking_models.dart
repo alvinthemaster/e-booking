@@ -97,6 +97,10 @@ class Booking {
   // Proof of trip attachment (stored as base64, Spark plan compatible)
   final String? proofOfTripBase64;
   final String? proofOfTripFileName;
+  // Proof of payment attachment (stored in Firebase Storage; URL persisted in Firestore)
+  final String? proofOfPaymentUrl;
+  final String? proofOfPaymentBase64;
+  final String? proofOfPaymentFileName;
 
   Booking({
     required this.id,
@@ -135,6 +139,9 @@ class Booking {
     this.adminCompletion,
     this.proofOfTripBase64,
     this.proofOfTripFileName,
+    this.proofOfPaymentUrl,
+    this.proofOfPaymentBase64,
+    this.proofOfPaymentFileName,
   });
 
   // Convert Booking to Map for Firestore
@@ -176,6 +183,9 @@ class Booking {
       'adminCompletion': adminCompletion,
       'proofOfTripBase64': proofOfTripBase64,
       'proofOfTripFileName': proofOfTripFileName,
+      'proofOfPaymentUrl': proofOfPaymentUrl,
+      'proofOfPaymentBase64': proofOfPaymentBase64,
+      'proofOfPaymentFileName': proofOfPaymentFileName,
     };
   }
 
@@ -228,6 +238,9 @@ class Booking {
       adminCompletion: map['adminCompletion'],
       proofOfTripBase64: map['proofOfTripBase64'],
       proofOfTripFileName: map['proofOfTripFileName'],
+      proofOfPaymentUrl: map['proofOfPaymentUrl'],
+      proofOfPaymentBase64: map['proofOfPaymentBase64'],
+      proofOfPaymentFileName: map['proofOfPaymentFileName'],
     );
   }
 

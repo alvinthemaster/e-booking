@@ -63,6 +63,11 @@ class FirebaseBookingService {
         vanPlateNumber: booking.vanPlateNumber,
         vanDriverName: booking.vanDriverName,
         vanDriverContact: booking.vanDriverContact,
+        proofOfTripBase64: booking.proofOfTripBase64,
+        proofOfTripFileName: booking.proofOfTripFileName,
+        proofOfPaymentUrl: booking.proofOfPaymentUrl,
+        proofOfPaymentBase64: booking.proofOfPaymentBase64,
+        proofOfPaymentFileName: booking.proofOfPaymentFileName,
       );
 
       await docRef.set(bookingWithId.toMap());

@@ -16,6 +16,9 @@ class DocumentDeliveryService {
   CollectionReference get _deliveriesCollection =>
       _firestore.collection('document_deliveries');
 
+    CollectionReference get _auditCollection =>
+      _firestore.collection('delivery_audit_logs');
+
   /// Persist a new [DocumentDelivery] to Firestore.
   ///
   /// Returns the Firestore document ID of the created record.
@@ -46,6 +49,14 @@ class DocumentDeliveryService {
         bookingFee: delivery.bookingFee,
         paymentAmount: delivery.paymentAmount,
         paymentStatus: delivery.paymentStatus,
+        proofOfPaymentBase64: delivery.proofOfPaymentBase64,
+        proofOfPaymentFileName: delivery.proofOfPaymentFileName,
+        receiverType: delivery.receiverType,
+        specifyRelationship: delivery.specifyRelationship,
+        claimedByName: delivery.claimedByName,
+        proofOfReceiptBase64: delivery.proofOfReceiptBase64,
+        proofOfReceiptFileName: delivery.proofOfReceiptFileName,
+        completedAt: delivery.completedAt,
         vanPlateNumber: delivery.vanPlateNumber,
         vanDriverName: delivery.vanDriverName,
         tripId: delivery.tripId,
@@ -118,6 +129,7 @@ class DocumentDeliveryService {
           .where('status', whereIn: [
             DeliveryStatus.pending.name,
             DeliveryStatus.inTransit.name,
+            DeliveryStatus.arrived.name,
           ])
           .limit(1)
           .snapshots()
@@ -137,5 +149,57 @@ class DocumentDeliveryService {
       debugPrint('❌ Error updating delivery status: $e');
       rethrow;
     }
+  }
+
+  Stream<List<DocumentDelivery>> streamDeliveriesForVan(String plateNumber) {
+    return _deliveriesCollection
+        .where('vanPlateNumber', isEqualTo: plateNumber)
+        .snapshots()
+        .map((snapshot) {
+      final list = snapshot.docs
+          .map((doc) => DocumentDelivery.fromMap(doc.data() as Map<String, dynamic>))
+          .toList()
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return list;
+    });
+  }
+
+  Future<void> addAuditLog({
+    required String deliveryId,
+    required String action,
+    required bool success,
+    required String message,
+    Map<String, dynamic>? metadata,
+  }) async {
+    final user = _auth.currentUser;
+    await _auditCollection.add({
+      'deliveryId': deliveryId,
+      'action': action,
+      'success': success,
+      'message': message,
+      'metadata': metadata ?? {},
+      'actorUserId': user?.uid,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<void> completeDelivery({
+    required String deliveryId,
+    required String receiverType,
+    String? specifyRelationship,
+    required String claimedByName,
+    required String proofOfReceiptBase64,
+    required String proofOfReceiptFileName,
+  }) async {
+    await _deliveriesCollection.doc(deliveryId).update({
+      'status': DeliveryStatus.delivered.name,
+      'paymentStatus': 'paid',
+      'receiverType': receiverType,
+      'specifyRelationship': specifyRelationship,
+      'claimedByName': claimedByName,
+      'proofOfReceiptBase64': proofOfReceiptBase64,
+      'proofOfReceiptFileName': proofOfReceiptFileName,
+      'completedAt': FieldValue.serverTimestamp(),
+    });
   }
 }

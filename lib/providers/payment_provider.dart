@@ -12,9 +12,14 @@ class PaymentProvider with ChangeNotifier {
   String get selectedMethod => _selectedMethod;
   String? get errorMessage => _errorMessage;
 
-  List<String> get availablePaymentMethods => ['GCash', 'Maya', 'PayPal'];
+  List<String> get availablePaymentMethods => ['GCash'];
 
   void setPaymentMethod(String method) {
+    if (method != 'GCash') {
+      _selectedMethod = 'GCash';
+      notifyListeners();
+      return;
+    }
     _selectedMethod = method;
     notifyListeners();
   }
@@ -68,8 +73,8 @@ class PaymentProvider with ChangeNotifier {
   Future<bool> _processGCashPayment(double amount) async {
     // In a real app, this would integrate with GCash API
     await Future.delayed(const Duration(seconds: 1));
-    // Simulate 90% success rate
-    return DateTime.now().millisecond % 10 != 0;
+    // Keep this deterministic to avoid false payment failures in production-like flows.
+    return true;
   }
 
   Future<bool> _processDigitalPayment(String method, double amount) async {

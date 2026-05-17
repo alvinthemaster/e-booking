@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
+import '../models/document_delivery_model.dart';
 import '../providers/auth_provider.dart' as app_auth;
+import '../services/document_delivery_service.dart';
+import 'driver_document_delivery_module.dart';
 
 class DriverScreen extends StatelessWidget {
   const DriverScreen({super.key});
@@ -162,6 +165,7 @@ class _DriverVanView extends StatefulWidget {
 class _DriverVanViewState extends State<_DriverVanView> {
   bool _isUpdating = false;
   bool _isSavingSchedule = false;
+  final DocumentDeliveryService _deliveryService = DocumentDeliveryService();
 
   // Local editable copy of the weekly schedule
   late Map<String, bool> _localSchedule;
@@ -571,6 +575,52 @@ class _DriverVanViewState extends State<_DriverVanView> {
   @override
   Widget build(BuildContext context) {
     final data = widget.data;
+    final plateNumber = data['plateNumber'] as String? ?? 'N/A';
+
+    return StreamBuilder<List<DocumentDelivery>>(
+      stream: _deliveryService.streamDeliveriesForVan(plateNumber),
+      builder: (context, snapshot) {
+        final hasDocumentDeliveries = (snapshot.data ?? []).isNotEmpty;
+
+        if (!hasDocumentDeliveries) {
+          return _buildDashboardTab();
+        }
+
+        return DefaultTabController(
+          length: 2,
+          child: SafeArea(
+            child: Column(
+              children: [
+                Container(
+                  color: Colors.white,
+                  child: const TabBar(
+                    labelColor: Color(0xFF2196F3),
+                    unselectedLabelColor: Colors.grey,
+                    indicatorColor: Color(0xFF2196F3),
+                    tabs: [
+                      Tab(text: 'Dashboard', icon: Icon(Icons.dashboard)),
+                      Tab(text: 'Document Delivery', icon: Icon(Icons.description)),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: TabBarView(
+                    children: [
+                      _buildDashboardTab(),
+                      DriverDocumentDeliveryModule(vanPlateNumber: plateNumber),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDashboardTab() {
+    final data = widget.data;
     final status = _status;
     final queuePosition = data['queuePosition']?.toString() ?? 'N/A';
     final vehicleType = (data['vehicleType'] as String? ?? 'van')
@@ -585,12 +635,11 @@ class _DriverVanViewState extends State<_DriverVanView> {
     final driverName = driverData?['name'] as String? ?? 'N/A';
     final currentRouteId = data['currentRouteId'] as String?;
 
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
             // Vehicle header
             Container(
               padding: const EdgeInsets.all(20),
@@ -682,8 +731,10 @@ class _DriverVanViewState extends State<_DriverVanView> {
               label: 'Current Status',
               value: _statusLabel(status),
               iconColor: _statusColor(status),
-            ),            const SizedBox(height: 10),
-            _buildRouteCard(currentRouteId),            const SizedBox(height: 10),
+            ),
+            const SizedBox(height: 10),
+            _buildRouteCard(currentRouteId),
+            const SizedBox(height: 10),
 
             // Weekly schedule (always editable)
             _buildEditableScheduleCard(),
@@ -712,8 +763,7 @@ class _DriverVanViewState extends State<_DriverVanView> {
               ),
 
             const SizedBox(height: 24),
-          ],
-        ),
+        ],
       ),
     );
   }

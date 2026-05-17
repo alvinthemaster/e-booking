@@ -1562,7 +1562,9 @@ class _RentalRequestFormScreenState extends State<RentalRequestFormScreen> {
   // Driver's license attachment (required for self-drive)
   String? _driverLicenseBase64;
   String? _driverLicenseFileName;
-  static const int _maxFileSizeBytes = 10 * 1024 * 1024; // 10 MB
+  // Firestore document limit is ~1 MiB; keep base64 attachments safely below it.
+  static const int _maxFileSizeBytes = 300 * 1024; // 300 KB per file
+  static const int _maxCombinedBase64Chars = 850000;
 
   // Proof of purpose attachment (required)
   String? _proofOfPurposeBase64;
@@ -1602,6 +1604,12 @@ class _RentalRequestFormScreenState extends State<RentalRequestFormScreen> {
   int _calculateDays() {
     if (_startDate == null || _endDate == null) return 0;
     return _endDate!.difference(_startDate!).inDays + 1;
+  }
+
+  bool _isAttachmentPayloadSafe() {
+    final driverLen = _driverLicenseBase64?.length ?? 0;
+    final purposeLen = _proofOfPurposeBase64?.length ?? 0;
+    return (driverLen + purposeLen) <= _maxCombinedBase64Chars;
   }
 
   double _calculateTotal() {
@@ -1644,7 +1652,7 @@ class _RentalRequestFormScreenState extends State<RentalRequestFormScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('File too large. Maximum size is 10 MB. Please compress the image or use a smaller file.'),
+            content: Text('File too large. Maximum size is 300 KB per file for smooth submission.'),
             backgroundColor: Colors.red,
           ),
         );
@@ -1688,7 +1696,7 @@ class _RentalRequestFormScreenState extends State<RentalRequestFormScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('File too large. Maximum size is 10 MB. Please compress the image or use a smaller file.'),
+            content: Text('File too large. Maximum size is 300 KB per file for smooth submission.'),
             backgroundColor: Colors.red,
           ),
         );
@@ -1731,6 +1739,16 @@ class _RentalRequestFormScreenState extends State<RentalRequestFormScreen> {
       return;
     }
 
+    if (!_isAttachmentPayloadSafe()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Attachments are too large for submission. Please use smaller/compressed files.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     final days = _calculateDays();
     if (widget.van.maxRentalDays != null && widget.van.maxRentalDays! > 0 && days > widget.van.maxRentalDays!) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1762,6 +1780,16 @@ class _RentalRequestFormScreenState extends State<RentalRequestFormScreen> {
         SnackBar(
           content: Text(
               'Rental period exceeds the maximum of ${widget.van.maxRentalDays} days'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (!_isAttachmentPayloadSafe()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Attachments are too large for submission. Please use smaller/compressed files.'),
           backgroundColor: Colors.red,
         ),
       );
@@ -2294,7 +2322,7 @@ class _RentalRequestFormScreenState extends State<RentalRequestFormScreen> {
                         ),
                       ] else ...[
                         Text(
-                          'Attach a clear photo or scan of your driver\'s license.\nAccepted: JPG, PNG, PDF — Max 10 MB',
+                          'Attach a clear photo or scan of your driver\'s license.\nAccepted: JPG, PNG, PDF — Max 300 KB',
                           style: TextStyle(
                               fontSize: 12, color: Colors.grey[600]),
                         ),
@@ -2452,7 +2480,7 @@ class _RentalRequestFormScreenState extends State<RentalRequestFormScreen> {
                       ),
                     ] else ...[
                       Text(
-                        'Attach a document supporting your trip purpose\n(e.g., itinerary, invitation letter, booking confirmation).\nAccepted: JPG, PNG, PDF — Max 10 MB',
+                        'Attach a document supporting your trip purpose\n(e.g., itinerary, invitation letter, booking confirmation).\nAccepted: JPG, PNG, PDF — Max 300 KB',
                         style:
                             TextStyle(fontSize: 12, color: Colors.grey[700]),
                       ),

@@ -1,4 +1,13 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
 import '../models/document_delivery_model.dart';
 import '../providers/seat_provider.dart';
@@ -55,13 +64,156 @@ class _DocumentDeliveryScreenState extends State<DocumentDeliveryScreen> {
   static const double _bookingFee = 15.0;
   bool _isSubmitting = false;
   bool _seatsInitialized = false;
+  Uint8List? _proofOfPaymentBytes;
+  String? _proofOfPaymentFileName;
 
   final DocumentDeliveryService _deliveryService = DocumentDeliveryService();
+
+  bool get _isGcashPayment => _selectedPaymentMethod == 'GCash';
+  double get _effectiveBookingFee => _isGcashPayment ? _bookingFee : 0.0;
+  double get _totalPayment => _deliveryFee + _effectiveBookingFee;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _initSeats());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initSeats();
+      _prefillSenderInfo();
+    });
+  }
+
+  Future<void> _prefillSenderInfo() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      String? senderName = user.displayName?.trim();
+      String? senderPhone = user.phoneNumber?.trim();
+
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      final data = userDoc.data();
+      senderName = (senderName?.isNotEmpty == true)
+          ? senderName
+          : (data?['name'] as String?)?.trim();
+      senderPhone = (senderPhone?.isNotEmpty == true)
+          ? senderPhone
+          : (data?['phone'] as String?)?.trim();
+
+      if (!mounted) return;
+
+      if (_senderNameCtrl.text.trim().isEmpty &&
+          senderName != null &&
+          senderName.isNotEmpty) {
+        _senderNameCtrl.text = senderName;
+      }
+
+      if (_senderContactCtrl.text.trim().isEmpty &&
+          senderPhone != null &&
+          senderPhone.isNotEmpty) {
+        _senderContactCtrl.text = senderPhone;
+      }
+    } catch (_) {
+      // Non-blocking: keep form editable even if profile prefill is unavailable.
+    }
+  }
+
+  Future<void> _pickProofOfPayment() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['jpg', 'jpeg', 'png'],
+        withData: true,
+      );
+
+      if (result == null || result.files.isEmpty) {
+        return;
+      }
+
+      final file = result.files.single;
+      final bytes = file.bytes;
+      if (bytes == null) {
+        throw Exception('Unable to read the selected file');
+      }
+
+      const maxBytes = 600 * 1024;
+      if (bytes.length > maxBytes) {
+        throw Exception('File is too large. Maximum is 600KB for Spark-safe upload.');
+      }
+
+      setState(() {
+        _proofOfPaymentBytes = bytes;
+        _proofOfPaymentFileName = file.name;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Failed to upload proof: ${e.toString().replaceAll('Exception: ', '')}',
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _downloadGcashQr() async {
+    try {
+      final qrBytes = (await rootBundle.load('assets/images/gcash_qr.png'))
+          .buffer
+          .asUint8List();
+      final qrImage = pw.MemoryImage(qrBytes);
+
+      final pdf = pw.Document();
+      pdf.addPage(
+        pw.Page(
+          build: (context) => pw.Center(
+            child: pw.Column(
+              mainAxisSize: pw.MainAxisSize.min,
+              children: [
+                pw.Text(
+                  'GCash Payment QR',
+                  style: pw.TextStyle(
+                    fontSize: 22,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+                pw.SizedBox(height: 16),
+                pw.Image(
+                  qrImage,
+                  width: 220,
+                  height: 220,
+                ),
+                pw.SizedBox(height: 16),
+                pw.Text(
+                  'Scan this QR in your GCash app to pay.',
+                  style: const pw.TextStyle(fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      await Printing.layoutPdf(
+        name: 'gcash_qr_payment.pdf',
+        onLayout: (format) async => pdf.save(),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Failed to download QR: ${e.toString().replaceAll('Exception: ', '')}',
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   Future<void> _initSeats() async {
@@ -93,15 +245,22 @@ class _DocumentDeliveryScreenState extends State<DocumentDeliveryScreen> {
     try {
       String paymentStatus = 'pending';
 
-      // For digital payments, process through PaymentProvider first
-      if (_selectedPaymentMethod != 'Physical Payment') {
+      String? proofOfPaymentBase64;
+
+      // GCash payment requires proof and digital payment simulation
+      if (_isGcashPayment) {
+        if (_proofOfPaymentBytes == null || _proofOfPaymentFileName == null) {
+          throw Exception('Please upload proof of payment before continuing.');
+        }
+        proofOfPaymentBase64 = base64Encode(_proofOfPaymentBytes!);
+
         final paymentProvider =
             Provider.of<PaymentProvider>(context, listen: false)
               ..resetPaymentStatus();
 
         final success = await paymentProvider.processPayment(
           bookingId: 'DOC${DateTime.now().millisecondsSinceEpoch}',
-          amount: _deliveryFee + _bookingFee,
+          amount: _totalPayment,
           method: _selectedPaymentMethod,
         );
 
@@ -136,9 +295,11 @@ class _DocumentDeliveryScreenState extends State<DocumentDeliveryScreen> {
         createdAt: DateTime.now(),
         paymentMethod: _selectedPaymentMethod,
         deliveryFee: _deliveryFee,
-        bookingFee: _bookingFee,
-        paymentAmount: _deliveryFee + _bookingFee,
+        bookingFee: _effectiveBookingFee,
+        paymentAmount: _totalPayment,
         paymentStatus: paymentStatus,
+        proofOfPaymentBase64: proofOfPaymentBase64,
+        proofOfPaymentFileName: _proofOfPaymentFileName,
         vanPlateNumber: widget.vanPlateNumber,
         vanDriverName: widget.vanDriverName,
       );
@@ -165,6 +326,8 @@ class _DocumentDeliveryScreenState extends State<DocumentDeliveryScreen> {
         bookingFee: delivery.bookingFee,
         paymentAmount: delivery.paymentAmount,
         paymentStatus: delivery.paymentStatus,
+        proofOfPaymentBase64: delivery.proofOfPaymentBase64,
+        proofOfPaymentFileName: delivery.proofOfPaymentFileName,
         vanPlateNumber: delivery.vanPlateNumber,
         vanDriverName: delivery.vanDriverName,
       );
@@ -359,6 +522,11 @@ class _DocumentDeliveryScreenState extends State<DocumentDeliveryScreen> {
                 // Sender Name
                 _buildFormCard(children: [
                   _buildLabel('Sender Information'),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Auto-filled from your account. You can still edit before submitting.',
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  ),
                   const SizedBox(height: 12),
                   _buildTextField(
                     controller: _senderNameCtrl,
@@ -432,7 +600,10 @@ class _DocumentDeliveryScreenState extends State<DocumentDeliveryScreen> {
                   // Fee breakdown
                   _feeRow('Delivery Fee', _deliveryFee),
                   const SizedBox(height: 8),
-                  _feeRow('Booking Fee', _bookingFee),
+                  _feeRow(
+                    _isGcashPayment ? 'Booking Fee' : 'Booking Fee (Excluded)',
+                    _effectiveBookingFee,
+                  ),
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 10),
                     child: Divider(height: 1),
@@ -452,7 +623,7 @@ class _DocumentDeliveryScreenState extends State<DocumentDeliveryScreen> {
                                   fontWeight: FontWeight.bold,
                                   color: Color(0xFF2196F3))),
                           Text(
-                            (_deliveryFee + _bookingFee).toStringAsFixed(2),
+                            _totalPayment.toStringAsFixed(2),
                             style: const TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
@@ -470,8 +641,13 @@ class _DocumentDeliveryScreenState extends State<DocumentDeliveryScreen> {
                   ...['GCash', 'Physical Payment'].map((method) {
                     final isSelected = _selectedPaymentMethod == method;
                     return GestureDetector(
-                      onTap: () =>
-                          setState(() => _selectedPaymentMethod = method),
+                      onTap: () => setState(() {
+                        _selectedPaymentMethod = method;
+                        if (!_isGcashPayment) {
+                          _proofOfPaymentBytes = null;
+                          _proofOfPaymentFileName = null;
+                        }
+                      }),
                       child: Container(
                         margin: const EdgeInsets.only(bottom: 10),
                         padding: const EdgeInsets.symmetric(
@@ -512,9 +688,15 @@ class _DocumentDeliveryScreenState extends State<DocumentDeliveryScreen> {
                               value: method,
                               groupValue: _selectedPaymentMethod,
                               onChanged: (v) {
-                                if (v != null)
-                                  setState(
-                                      () => _selectedPaymentMethod = v);
+                                if (v != null) {
+                                  setState(() {
+                                    _selectedPaymentMethod = v;
+                                    if (!_isGcashPayment) {
+                                      _proofOfPaymentBytes = null;
+                                      _proofOfPaymentFileName = null;
+                                    }
+                                  });
+                                }
                               },
                               activeColor: const Color(0xFF2196F3),
                               materialTapTargetSize:
@@ -525,7 +707,110 @@ class _DocumentDeliveryScreenState extends State<DocumentDeliveryScreen> {
                       ),
                     );
                   }),
-                  if (_selectedPaymentMethod == 'Physical Payment') ...[   
+                  if (_isGcashPayment) ...[
+                    const SizedBox(height: 6),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2196F3).withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Text(
+                        'GCash: scan the QR, complete payment, then upload your proof of payment.',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF1565C0),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Center(
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey[300]!),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Column(
+                          children: [
+                            Image.asset(
+                              'assets/images/gcash_qr.png',
+                              width: 170,
+                              height: 170,
+                              fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  width: 170,
+                                  height: 170,
+                                  color: Colors.grey[100],
+                                  alignment: Alignment.center,
+                                  child: const Padding(
+                                    padding: EdgeInsets.all(12.0),
+                                    child: Text(
+                                      'Missing assets/images/gcash_qr.png',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(fontSize: 12),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Use your GCash app to scan and pay',
+                              style: TextStyle(fontSize: 12, color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: _downloadGcashQr,
+                        icon: const Icon(Icons.download),
+                        label: const Text('Download GCash QR'),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: _pickProofOfPayment,
+                        icon: const Icon(Icons.upload_file),
+                        label: Text(
+                          _proofOfPaymentFileName == null
+                              ? 'Upload Proof of Payment'
+                              : 'Change Uploaded Proof',
+                        ),
+                      ),
+                    ),
+                    if (_proofOfPaymentFileName != null) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        _proofOfPaymentFileName!,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                    if (_proofOfPaymentBytes != null) ...[
+                      const SizedBox(height: 10),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: Image.memory(
+                          _proofOfPaymentBytes!,
+                          height: 170,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ],
+                  ],
+                  if (_selectedPaymentMethod == 'Physical Payment') ...[
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
@@ -541,7 +826,7 @@ class _DocumentDeliveryScreenState extends State<DocumentDeliveryScreen> {
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'Pay \u20b1${(_deliveryFee + _bookingFee).toStringAsFixed(0)} (\u20b1${_deliveryFee.toStringAsFixed(0)} delivery + \u20b1${_bookingFee.toStringAsFixed(0)} booking fee) to the driver when handing over your document.',
+                              'Pay \u20b1${_deliveryFee.toStringAsFixed(0)} delivery fee to the driver when handing over your document. No booking fee is added for physical payment.',
                               style: TextStyle(
                                   fontSize: 12, color: Colors.orange[800]),
                             ),

@@ -110,6 +110,20 @@ service cloud.firestore {
       allow delete: if request.auth != null &&
                      request.auth.uid == resource.data.userId;
     }
+
+    // ===== DELIVERY AUDIT LOGS =====
+    // Drivers and authenticated users can write logs for delivery events.
+    match /delivery_audit_logs/{logId} {
+      allow create, read: if request.auth != null;
+      allow update, delete: if false;
+    }
+
+    // ===== SMS LOGS =====
+    // Client writes provider results after calling external backend API.
+    match /sms_logs/{logId} {
+      allow create, read: if request.auth != null;
+      allow update, delete: if false;
+    }
     
     // ===== ADMIN ACCESS =====
     // Admin users can access everything (using custom claims)

@@ -36,6 +36,7 @@ enum DocumentType {
 enum DeliveryStatus {
   pending,
   inTransit,
+  arrived,
   delivered,
   cancelled;
 
@@ -45,6 +46,8 @@ enum DeliveryStatus {
         return 'Pending';
       case DeliveryStatus.inTransit:
         return 'In Transit';
+      case DeliveryStatus.arrived:
+        return 'Arrived';
       case DeliveryStatus.delivered:
         return 'Delivered';
       case DeliveryStatus.cancelled:
@@ -91,6 +94,16 @@ class DocumentDelivery {
   final double bookingFee;     // platform booking fee (₱15)
   final double paymentAmount;  // deliveryFee + bookingFee
   final String paymentStatus; // 'pending' | 'paid'
+  final String? proofOfPaymentBase64;
+  final String? proofOfPaymentFileName;
+
+  // Driver completion / claim details
+  final String receiverType; // 'Receiver' | 'Others'
+  final String? specifyRelationship;
+  final String? claimedByName;
+  final String? proofOfReceiptBase64;
+  final String? proofOfReceiptFileName;
+  final DateTime? completedAt;
 
   // Linked trip info (optional – filled when a specific van/trip is chosen)
   final String? vanPlateNumber;
@@ -117,6 +130,14 @@ class DocumentDelivery {
     this.bookingFee = 15.0,
     this.paymentAmount = 115.0,
     this.paymentStatus = 'pending',
+    this.proofOfPaymentBase64,
+    this.proofOfPaymentFileName,
+    this.receiverType = 'Receiver',
+    this.specifyRelationship,
+    this.claimedByName,
+    this.proofOfReceiptBase64,
+    this.proofOfReceiptFileName,
+    this.completedAt,
     this.vanPlateNumber,
     this.vanDriverName,
     this.tripId,
@@ -143,6 +164,14 @@ class DocumentDelivery {
       'bookingFee': bookingFee,
       'paymentAmount': paymentAmount,
       'paymentStatus': paymentStatus,
+      'proofOfPaymentBase64': proofOfPaymentBase64,
+      'proofOfPaymentFileName': proofOfPaymentFileName,
+      'receiverType': receiverType,
+      'specifyRelationship': specifyRelationship,
+      'claimedByName': claimedByName,
+      'proofOfReceiptBase64': proofOfReceiptBase64,
+      'proofOfReceiptFileName': proofOfReceiptFileName,
+      'completedAt': completedAt != null ? Timestamp.fromDate(completedAt!) : null,
       'vanPlateNumber': vanPlateNumber,
       'vanDriverName': vanDriverName,
       'tripId': tripId,
@@ -172,6 +201,16 @@ class DocumentDelivery {
       bookingFee: (map['bookingFee'] as num?)?.toDouble() ?? 15.0,
       paymentAmount: (map['paymentAmount'] as num?)?.toDouble() ?? 115.0,
       paymentStatus: map['paymentStatus'] ?? 'pending',
+      proofOfPaymentBase64: map['proofOfPaymentBase64'],
+      proofOfPaymentFileName: map['proofOfPaymentFileName'],
+        receiverType: map['receiverType'] ?? 'Receiver',
+        specifyRelationship: map['specifyRelationship'],
+        claimedByName: map['claimedByName'],
+        proofOfReceiptBase64: map['proofOfReceiptBase64'],
+        proofOfReceiptFileName: map['proofOfReceiptFileName'],
+        completedAt: map['completedAt'] != null
+          ? (map['completedAt'] as Timestamp).toDate()
+          : null,
       vanPlateNumber: map['vanPlateNumber'],
       vanDriverName: map['vanDriverName'],
       tripId: map['tripId'],

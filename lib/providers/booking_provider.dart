@@ -80,6 +80,9 @@ class BookingProvider with ChangeNotifier {
     double addOnsAmount = 0.0,
     String? proofOfTripBase64,
     String? proofOfTripFileName,
+    String? proofOfPaymentUrl,
+    String? proofOfPaymentBase64,
+    String? proofOfPaymentFileName,
   }) async {
     try {
       _isLoading = true;
@@ -148,6 +151,9 @@ class BookingProvider with ChangeNotifier {
         vanDriverContact: activeVan.driver.contact,
         proofOfTripBase64: proofOfTripBase64,
         proofOfTripFileName: proofOfTripFileName,
+        proofOfPaymentUrl: proofOfPaymentUrl,
+        proofOfPaymentBase64: proofOfPaymentBase64,
+        proofOfPaymentFileName: proofOfPaymentFileName,
       );
 
       final bookingId = await _bookingService.createBooking(booking);
@@ -263,6 +269,11 @@ class BookingProvider with ChangeNotifier {
         vanPlateNumber: van.plateNumber,
         vanDriverName: van.driver.name,
         vanDriverContact: van.driver.contact,
+        proofOfTripBase64: booking.proofOfTripBase64,
+        proofOfTripFileName: booking.proofOfTripFileName,
+        proofOfPaymentUrl: booking.proofOfPaymentUrl,
+        proofOfPaymentBase64: booking.proofOfPaymentBase64,
+        proofOfPaymentFileName: booking.proofOfPaymentFileName,
       );
 
       final newId = await _bookingService.createBooking(newBooking);

@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -13,6 +16,15 @@ class DeliveryETicketScreen extends StatelessWidget {
   static const String _hostingUrl = 'https://e-ticket-2e8d0.web.app';
 
   const DeliveryETicketScreen({super.key, required this.delivery});
+
+  Uint8List? _decodeBase64Image(String? base64Data) {
+    if (base64Data == null || base64Data.isEmpty) return null;
+    try {
+      return base64Decode(base64Data);
+    } catch (_) {
+      return null;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -329,8 +341,7 @@ class DeliveryETicketScreen extends StatelessWidget {
                                       size: 13,
                                       color: const Color(0xFF2196F3)),
                                   Text(
-                                    (delivery.deliveryFee + delivery.bookingFee)
-                                        .toStringAsFixed(2),
+                                    delivery.paymentAmount.toStringAsFixed(2),
                                     style: const TextStyle(
                                         fontSize: 18,
                                         fontWeight: FontWeight.bold,
@@ -360,7 +371,7 @@ class DeliveryETicketScreen extends StatelessWidget {
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
-                                      'Pay \u20b1${(delivery.deliveryFee + delivery.bookingFee).toStringAsFixed(0)} to the driver/conductor when handing over your document.',
+                                      'Pay \u20b1${delivery.paymentAmount.toStringAsFixed(0)} to the driver/conductor when handing over your document.',
                                       style: TextStyle(
                                           fontSize: 12,
                                           color: Colors.orange[800]),
@@ -374,6 +385,71 @@ class DeliveryETicketScreen extends StatelessWidget {
                       ),
                     ),
                   ),
+
+                  if (delivery.proofOfPaymentBase64 != null) ...[
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[50],
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'PROOF OF PAYMENT',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Builder(
+                              builder: (context) {
+                                final bytes = _decodeBase64Image(
+                                  delivery.proofOfPaymentBase64,
+                                );
+                                if (bytes == null) {
+                                  return Container(
+                                    height: 120,
+                                    width: double.infinity,
+                                    color: Colors.grey[200],
+                                    alignment: Alignment.center,
+                                    child: const Text(
+                                      'Unable to load proof image',
+                                    ),
+                                  );
+                                }
+                                return ClipRRect(
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: Image.memory(
+                                    bytes,
+                                    height: 180,
+                                    width: double.infinity,
+                                    fit: BoxFit.cover,
+                                  ),
+                                );
+                              },
+                            ),
+                            if (delivery.proofOfPaymentFileName != null) ...[
+                              const SizedBox(height: 8),
+                              Text(
+                                delivery.proofOfPaymentFileName!,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
 
                   // Dashed divider
                   Padding(

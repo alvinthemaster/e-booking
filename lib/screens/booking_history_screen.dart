@@ -1,4 +1,7 @@
-﻿import 'package:flutter/material.dart';
+﻿import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -22,6 +25,87 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen>
   final TextEditingController _searchController = TextEditingController();
   final DocumentDeliveryService _deliveryService = DocumentDeliveryService();
   String _searchQuery = '';
+
+  Uint8List? _decodeBase64Image(String? base64Data) {
+    if (base64Data == null || base64Data.isEmpty) return null;
+    try {
+      return base64Decode(base64Data);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  void _showReceiptProof(DocumentDelivery delivery) {
+    final bytes = _decodeBase64Image(delivery.proofOfReceiptBase64);
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        'Proof of Receipt',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close),
+                      splashRadius: 18,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                if (bytes == null)
+                  Container(
+                    height: 180,
+                    width: double.infinity,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[200],
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Text('Unable to load proof image'),
+                  )
+                else
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.memory(
+                      bytes,
+                      height: 220,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                if (delivery.proofOfReceiptFileName != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    delivery.proofOfReceiptFileName!,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   @override
   void initState() {
@@ -645,6 +729,25 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen>
                 ),
               ),
             ),
+            if (delivery.status == DeliveryStatus.delivered &&
+                delivery.proofOfReceiptBase64 != null &&
+                delivery.proofOfReceiptBase64!.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => _showReceiptProof(delivery),
+                  icon: const Icon(Icons.photo_library, size: 18),
+                  label: const Text('View Proof of Receipt'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF2196F3),
+                    side: const BorderSide(color: Color(0xFF2196F3)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -746,6 +849,8 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen>
         return Colors.orange;
       case DeliveryStatus.inTransit:
         return const Color(0xFF2196F3);
+      case DeliveryStatus.arrived:
+        return const Color(0xFF00A3A3);
       case DeliveryStatus.delivered:
         return const Color(0xFF4CAF50);
       case DeliveryStatus.cancelled:
@@ -1148,6 +1253,7 @@ class _DocumentsTabState extends State<_DocumentsTab> {
     switch (s) {
       case DeliveryStatus.pending: return const Color(0xFFFF9800);
       case DeliveryStatus.inTransit: return const Color(0xFF2196F3);
+      case DeliveryStatus.arrived: return const Color(0xFF00A3A3);
       case DeliveryStatus.delivered: return const Color(0xFF4CAF50);
       case DeliveryStatus.cancelled: return const Color(0xFF757575);
     }
@@ -1157,6 +1263,7 @@ class _DocumentsTabState extends State<_DocumentsTab> {
     switch (s) {
       case DeliveryStatus.pending: return Icons.hourglass_empty;
       case DeliveryStatus.inTransit: return Icons.local_shipping_outlined;
+      case DeliveryStatus.arrived: return Icons.place_outlined;
       case DeliveryStatus.delivered: return Icons.check_circle_outline;
       case DeliveryStatus.cancelled: return Icons.cancel_outlined;
     }

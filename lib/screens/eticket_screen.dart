@@ -1,4 +1,9 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:intl/intl.dart';
@@ -444,6 +449,102 @@ class ETicketScreen extends StatelessWidget {
                                       ],
                                     ),
                                   ),
+
+                                if (booking.proofOfPaymentUrl != null ||
+                                  booking.proofOfPaymentBase64 != null) ...[
+                                  const SizedBox(height: 24),
+                                  Container(
+                                    padding: const EdgeInsets.all(16),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey[50],
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                          'PROOF OF PAYMENT',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 10),
+                                        ClipRRect(
+                                          borderRadius: BorderRadius.circular(10),
+                                          child: booking.proofOfPaymentUrl != null
+                                              ? Image.network(
+                                                  booking.proofOfPaymentUrl!,
+                                                  height: 200,
+                                                  width: double.infinity,
+                                                  fit: BoxFit.cover,
+                                                  errorBuilder: (
+                                                    context,
+                                                    error,
+                                                    stackTrace,
+                                                  ) {
+                                                    final bytes = _decodeBase64Image(
+                                                      booking.proofOfPaymentBase64,
+                                                    );
+                                                    if (bytes == null) {
+                                                      return Container(
+                                                        height: 120,
+                                                        width: double.infinity,
+                                                        color: Colors.grey[200],
+                                                        alignment: Alignment.center,
+                                                        child: const Text(
+                                                          'Unable to load proof image',
+                                                        ),
+                                                      );
+                                                    }
+                                                    return Image.memory(
+                                                      bytes,
+                                                      height: 200,
+                                                      width: double.infinity,
+                                                      fit: BoxFit.cover,
+                                                    );
+                                                  },
+                                                )
+                                              : Builder(
+                                                  builder: (context) {
+                                                    final bytes = _decodeBase64Image(
+                                                      booking.proofOfPaymentBase64,
+                                                    );
+                                                    if (bytes == null) {
+                                                      return Container(
+                                                        height: 120,
+                                                        width: double.infinity,
+                                                        color: Colors.grey[200],
+                                                        alignment: Alignment.center,
+                                                        child: const Text(
+                                                          'No valid proof image found',
+                                                        ),
+                                                      );
+                                                    }
+                                                    return Image.memory(
+                                                      bytes,
+                                                      height: 200,
+                                                      width: double.infinity,
+                                                      fit: BoxFit.cover,
+                                                    );
+                                                  },
+                                                ),
+                                        ),
+                                        if (booking.proofOfPaymentFileName != null) ...[
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            booking.proofOfPaymentFileName!,
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey,
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ],
                             ),
                           ),
@@ -637,22 +738,97 @@ class ETicketScreen extends StatelessWidget {
     );
   }
 
-  void _shareTicket(BuildContext context) {
-    // Implement ticket sharing functionality
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Ticket sharing functionality will be implemented'),
-      ),
-    );
+  Uint8List? _decodeBase64Image(String? base64Data) {
+    if (base64Data == null || base64Data.isEmpty) return null;
+
+    try {
+      return base64Decode(base64Data);
+    } catch (_) {
+      return null;
+    }
   }
 
-  void _downloadTicket(BuildContext context, Booking booking) {
-    // Implement ticket download functionality
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Ticket download functionality will be implemented'),
+  Future<pw.Document> _buildTicketPdf(Booking booking) async {
+    final doc = pw.Document();
+
+    doc.addPage(
+      pw.MultiPage(
+        build: (context) => [
+          pw.Text(
+            'GODTRASCO E-Ticket',
+            style: pw.TextStyle(
+              fontSize: 24,
+              fontWeight: pw.FontWeight.bold,
+            ),
+          ),
+          pw.SizedBox(height: 8),
+          pw.Text('Booking ID: ${booking.id}'),
+          pw.Text('Passenger: ${booking.passengerDetails?['name'] ?? booking.userName}'),
+          pw.Text('Email: ${booking.passengerDetails?['email'] ?? booking.userEmail}'),
+          pw.Text('Phone: ${booking.passengerDetails?['phone'] ?? 'N/A'}'),
+          pw.Text('Route: ${booking.origin} to ${booking.destination}'),
+          pw.Text('Seats: ${booking.seatIds.join(', ')}'),
+          pw.Text('Total: ${CurrencyFormatter.formatPesoWithDecimals(booking.totalAmount)}'),
+          pw.Text('Payment Method: ${booking.paymentMethod}'),
+          pw.SizedBox(height: 20),
+          pw.Center(
+            child: pw.BarcodeWidget(
+              barcode: pw.Barcode.qrCode(),
+              data: booking.qrCodeData ?? booking.id,
+              width: 180,
+              height: 180,
+            ),
+          ),
+        ],
       ),
     );
+
+    return doc;
+  }
+
+  Future<void> _shareTicket(BuildContext context) async {
+    try {
+      final booking = await Provider.of<BookingProvider>(
+        context,
+        listen: false,
+      ).getBookingById(bookingId);
+
+      if (booking == null) {
+        throw Exception('Booking not found');
+      }
+
+      final pdf = await _buildTicketPdf(booking);
+      await Printing.sharePdf(
+        bytes: await pdf.save(),
+        filename: 'eticket_${booking.id}.pdf',
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Unable to share ticket: ${e.toString().replaceAll('Exception: ', '')}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _downloadTicket(BuildContext context, Booking booking) async {
+    try {
+      final pdf = await _buildTicketPdf(booking);
+      await Printing.layoutPdf(
+        name: 'eticket_${booking.id}.pdf',
+        onLayout: (format) async => pdf.save(),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Unable to download ticket: ${e.toString().replaceAll('Exception: ', '')}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 }
 
